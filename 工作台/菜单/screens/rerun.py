@@ -5,9 +5,8 @@
 - 重跑上游 → 当前阶段及之后全部 ``rerun_invalidated``；
 - 恢复时禁止混用版本。
 
-菜单 4 仅做交互调度：将上游 / 当前阶段 / 选项写入重跑请求，调
-用 ``工作台.流水线.orchestrator.rerun``。B 未到位时
-``NotImplementedError`` 占位。
+菜单 4 仅做交互调度：确认后调用
+``工作台.流水线.orchestrator.rerun`` 把阶段打回上游并续跑。
 """
 
 from __future__ import annotations

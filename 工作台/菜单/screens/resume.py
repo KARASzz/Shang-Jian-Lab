@@ -2,8 +2,7 @@
 
 - 定位 ``进行中/`` 下最新一期（按目录名倒序）。
 - 读取 ``运行记录/checkpoint.json``，打印当前 ``stage`` 与最近阶段。
-- 通过 ``工作台.流水线.orchestrator.resume`` 通知 B 续跑；B 未到位则
-  :func:`NotImplementedError` 占位。
+- 调用 ``工作台.流水线.orchestrator.resume`` 从 checkpoint 续跑。
 """
 
 from __future__ import annotations
