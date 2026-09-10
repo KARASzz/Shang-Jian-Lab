@@ -6,10 +6,7 @@ import json
 from pathlib import Path
 
 from 工作台.接口 import SearchClient, SearchSource
-from 工作台.流水线.checkpoint import (
-    atomic_write_checkpoint,
-    record_version,
-)
+from 工作台.流水线.checkpoint import commit_stage
 
 
 class EvidenceCollectionStage:
@@ -55,7 +52,8 @@ class EvidenceCollectionStage:
                     break
                 if src.id in seen:
                     continue
-                seen[src.id] = src
+                fetched = self.search.fetch(src)
+                seen[src.id] = fetched
         return list(seen.values())
 
     def render_anchor_md(self, anchor_reports: list[str]) -> str:
@@ -88,11 +86,13 @@ class EvidenceCollectionStage:
             encoding="utf-8",
         )
 
-        state = record_version(state, "evidence_collection",
-                               evidence_path.read_text(encoding="utf-8"))
-        state = atomic_write_checkpoint(state, Path(issue_dir) / "运行记录")
-        from 工作台.流水线.state import advance
-        return advance(state), sources
+        state = commit_stage(
+            state,
+            Path(issue_dir) / "运行记录",
+            version_key="evidence_collection",
+            text=evidence_path.read_text(encoding="utf-8"),
+        )
+        return state, sources
 
 
 __all__ = ["EvidenceCollectionStage"]

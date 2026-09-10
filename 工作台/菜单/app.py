@@ -19,6 +19,10 @@ def main(argv: list[str] | None = None) -> int:
 
     # 仅消费 argv 防止静态检查提示，不向菜单传参。
     _ = argv if argv is not None else sys.argv[1:]
+    from 工作台.接入.envfile import load_env_files
+    from 工作台.菜单.paths import repo_root
+
+    load_env_files(repo_root())
     return run_loop()
 
 

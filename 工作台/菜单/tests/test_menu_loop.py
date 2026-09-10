@@ -55,6 +55,25 @@ class MenuLoopTests(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertIn("未识别的选项", io.out.getvalue())
 
+    def test_empty_line_on_eof_exits(self) -> None:
+        class _EOFIO:
+            def __init__(self) -> None:
+                self.out = io.StringIO()
+
+            def println(self, text: str = "") -> None:
+                self.out.write(text + "\n")
+
+            def print(self, text: str) -> None:
+                self.out.write(text)
+
+            def read_line(self) -> str:
+                return ""
+
+        eof_io = _EOFIO()
+        rc = menu.run_loop(eof_io)
+        self.assertEqual(rc, 0)
+        self.assertIn("已退出", eof_io.out.getvalue())
+
     def test_handler_exception_does_not_break_loop(self) -> None:
         """一个屏抛错也要让循环继续；最后 0 退出码仍为 0。"""
 

@@ -47,20 +47,40 @@ class BingPublicSearch:
             wait = max(0.0, window - (now - self._hits[0]))
             self._sleeper(wait)
 
-    def search(self, query: str, max_results: int = 10) -> list[SearchSource]:
-        """占位：不发起网络请求；返回空列表并提示。
+    def search(
+        self, query: str, *, round_idx: int = 0, max_results: int = 10
+    ) -> list[SearchSource]:
+        """占位：不发起网络请求。
 
-        接口规范 §2 要求返回 ``SearchSource`` 列表；真实实现时按字段填充。
+        不得返回空列表假装「零命中」；用 ``fetch_failed`` 标明渠道未运行。
         """
 
         self._throttle()
         self._hits.append(self._clock())
         print(
             f"[调试] Bing 公开搜索占位：endpoint={self._config.endpoint} "
-            f"query={query!r} max_results={max_results}"
+            f"query={query!r} round_idx={round_idx} max_results={max_results}"
         )
-        # 不发起真实请求
-        return []
+        return [
+            SearchSource(
+                id=f"bing-unavail-r{round_idx}",
+                url=self._config.endpoint,
+                title="Bing 公开搜索未启用（占位，未联网）",
+                publisher=None,
+                published_at=None,
+                accessed_at="",
+                excerpt=query,
+                locator=None,
+                body_path=None,
+                status="fetch_failed",
+                channel="bing",
+            )
+        ]
+
+    def fetch(self, source: SearchSource) -> SearchSource:
+        """占位：不抓正文，保持原 status。"""
+
+        return source
 
     def debug_info(self) -> dict[str, Any]:
         return {

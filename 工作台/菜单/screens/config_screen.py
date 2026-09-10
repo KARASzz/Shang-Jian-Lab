@@ -24,6 +24,9 @@ from pathlib import Path
 from typing import Iterable
 
 from .. import paths, prompt
+from 工作台.接入.envfile import upsert_env_file
+
+CREDENTIALS_REL = Path("配置") / "凭据" / ".env"
 
 CONFIG_FILENAME = "本地.toml"
 
@@ -41,29 +44,39 @@ class ConfigCopyResult:
 
 
 def list_env_keys(default_path: Path) -> list[str]:
-    """扫描 ``默认.toml`` 找出所有 ``*_env`` 字段值（环境变量名）。"""
+    """扫描配置，收集 API Key 类环境变量名（含 Tavily 内联表）。"""
 
     if not default_path.exists():
         return []
+    text = paths.read_text(default_path)
     names: list[str] = []
-    for line in paths.read_text(default_path).splitlines():
+    for line in text.splitlines():
         m = _TOML_KV.match(line)
-        if m and m.group(1).endswith("_env"):
+        if m and m.group(1).endswith("_env") and "base_url" not in m.group(1):
             names.append(m.group(2))
+    if "TAVILY_API_KEY" in text and "TAVILY_API_KEY" not in names:
+        names.append("TAVILY_API_KEY")
     return names
 
 
 def list_base_urls(default_path: Path) -> list[str]:
-    """扫描 ``默认.toml`` 找出所有 ``base_url_*`` 字段值。"""
+    """扫描 ``base_url_env`` 的环境变量名（如 MINIMAX_BASE_URL）。"""
 
     if not default_path.exists():
         return []
     out: list[str] = []
     for line in paths.read_text(default_path).splitlines():
         m = _TOML_KV.match(line)
-        if m and "base_url" in m.group(1).lower():
-            out.append(m.group(1))
+        if m and m.group(1).endswith("base_url_env"):
+            out.append(m.group(2))
     return out
+
+
+def persist_secrets(repo_root: Path, values: dict[str, str]) -> Path:
+    """写入 ``配置/凭据/.env`` 并立刻注入 ``os.environ``。不回显。"""
+
+    dest = Path(repo_root) / CREDENTIALS_REL
+    return upsert_env_file(dest, values)
 
 
 def copy_default_to_local(default_path: Path, local_path: Path, *, force: bool = False) -> ConfigCopyResult:
@@ -113,15 +126,20 @@ def run(io) -> None:
         io.println("默认配置中没有需要填写的字段。")
         return
     io.println("下面将逐项让你输入；如已有环境变量可直接回车跳过。")
+    collected: dict[str, str] = {}
     for key in base_url_keys:
-        io.print(f"{key}（默认无；可粘贴完整 URL）: ")
+        io.print(f"{key}（可粘贴完整 URL，回车跳过）: ")
         value = io.read_line().strip()
         if value:
-            io.println(f"  记录到 {local_path.name}（已脱敏）")
+            collected[key] = value
+            io.println("  已记录（不回显）")
     for env_name in env_keys:
         value = prompt.read_hidden(f"环境变量 {env_name} = ")
         if value:
-            io.println(f"  已写入本地备忘；原值脱敏：{prompt.redact(value)}")
+            collected[env_name] = value
+            io.println("  已写入本地凭据文件（不回显）")
+    if collected:
+        persist_secrets(paths.repo_root(), collected)
 
 
 __all__ = [
@@ -130,5 +148,6 @@ __all__ = [
     "copy_default_to_local",
     "list_base_urls",
     "list_env_keys",
+    "persist_secrets",
     "run",
 ]

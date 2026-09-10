@@ -60,8 +60,20 @@ class OrchestratorSmokeTests(unittest.TestCase):
                 self.assertTrue((issue / "三篇初稿" / f"初稿-{i}.md").exists())
             self.assertTrue((issue / "审稿与返修" / "审稿-初轮.json").exists())
             self.assertTrue((issue / "运行记录" / "checkpoint.json").exists())
-            # 终态：finalizing
+            # 终态：finalizing（内存与磁盘一致）
             self.assertEqual(state.stage, "finalizing")
+            ck = json.loads((issue / "运行记录" / "checkpoint.json").read_text(encoding="utf-8"))
+            self.assertEqual(ck["stage"], "finalizing")
+            chosen = json.loads((issue / "选题" / "选定.json").read_text(encoding="utf-8"))
+            self.assertEqual(chosen["topic"], "候选 1")
+            evidence = json.loads((issue / "资料" / "证据清单.json").read_text(encoding="utf-8"))
+            self.assertEqual(evidence["topic"], "候选 1")
+            plan = (issue / "策划" / "三角度策划.md").read_text(encoding="utf-8")
+            headings = [ln for ln in plan.splitlines() if ln.startswith("## ")]
+            self.assertGreaterEqual(len(headings), 3)
+            for i in (1, 2, 3):
+                body = (issue / "三篇初稿" / f"初稿-{i}.md").read_text(encoding="utf-8")
+                self.assertNotIn("占位角度", body)
             # finalizing 产物
             self.assertTrue((issue / "待定稿" / "推荐稿.md").exists())
             self.assertTrue((issue / "待定稿" / "备选标题.md").exists())

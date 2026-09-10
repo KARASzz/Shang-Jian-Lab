@@ -9,10 +9,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from 工作台.接口 import ModelClient, ModelRequest, ReviewVerdict
-from 工作台.流水线.checkpoint import (
-    atomic_write_checkpoint,
-    record_version,
-)
+from 工作台.流水线.checkpoint import commit_stage
+from 工作台.流水线.prompts import request_model_of, system_prompt
 
 
 class FinalizingStage:
@@ -26,7 +24,7 @@ class FinalizingStage:
         return ModelRequest(
             role="writer",
             messages=[
-                {"role": "system", "content": "writer-system"},
+                {"role": "system", "content": system_prompt("writer")},
                 {
                     "role": "user",
                     "content": (
@@ -36,7 +34,7 @@ class FinalizingStage:
                 },
             ],
             temperature=0.7,
-            request_model="qwen3.7-plus",
+            request_model=request_model_of(self.writer, "qwen3.7-plus"),
             snapshot_id=self.snapshot_id,
         )
 
@@ -44,7 +42,7 @@ class FinalizingStage:
         return ModelRequest(
             role="writer",
             messages=[
-                {"role": "system", "content": "writer-system"},
+                {"role": "system", "content": system_prompt("writer")},
                 {
                     "role": "user",
                     "content": (
@@ -54,7 +52,7 @@ class FinalizingStage:
                 },
             ],
             temperature=0.7,
-            request_model="qwen3.7-plus",
+            request_model=request_model_of(self.writer, "qwen3.7-plus"),
             snapshot_id=self.snapshot_id,
         )
 
@@ -93,10 +91,14 @@ class FinalizingStage:
         )
         (pending_dir / "摘要与资料口径.md").write_text(summary_md, encoding="utf-8")
 
-        state = record_version(state, "finalizing", draft_text)
-        state = atomic_write_checkpoint(state, Path(issue_dir) / "运行记录")
-        from 工作台.流水线.state import advance
-        return advance(state, event="finalizing"), {
+        state = commit_stage(
+            state,
+            Path(issue_dir) / "运行记录",
+            version_key="finalizing",
+            text=draft_text,
+            event="finalizing",
+        )
+        return state, {
             "推荐稿": pending_dir / "推荐稿.md",
             "备选标题": pending_dir / "备选标题.md",
             "摘要与资料口径": pending_dir / "摘要与资料口径.md",

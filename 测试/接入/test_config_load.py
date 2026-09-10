@@ -223,6 +223,14 @@ class FieldMissingTests(unittest.TestCase):
         with self.assertRaises(ConfigError):
             load_local_config(repo_root=d, path=str(d / "本地.toml"))
 
+    def test_auth_failure_abort_false_raises(self) -> None:
+        body = SAMPLE_TOML.replace(
+            "auth_failure_abort = true", "auth_failure_abort = false"
+        )
+        d = self._write(body)
+        with self.assertRaises(ConfigError):
+            load_local_config(repo_root=d, path=str(d / "本地.toml"))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -61,13 +61,13 @@ class ArchiveResult:
     excluded: tuple[str, ...]
 
 
-def _should_carry(name: str) -> bool:
-    """顶层 ``name`` 是否随期迁移。"""
+def _should_exclude(name: str) -> bool:
+    """顶层名是否排除（运行记录、隐藏目录、密钥）。其余整期带走，含配图。"""
 
-    if name in CARRY_SUBDIRS:
+    if name in EXCLUDE_TOP_NAMES:
         return True
     if name.startswith("."):
-        return False
+        return True
     return False
 
 
@@ -81,7 +81,7 @@ def _verify_sha(snapshot: dict[str, tuple[Path, str]], dst_root: Path) -> list[s
     diff: list[str] = []
     for rel, (src_path, src_hash) in snapshot.items():
         top = rel.split("/", 1)[0]
-        if top in EXCLUDE_TOP_NAMES:
+        if _should_exclude(top):
             continue
         dst_path = dst_root / rel
         if not dst_path.exists():
@@ -104,26 +104,28 @@ def _stage_snapshot(issue_root: Path) -> dict[str, tuple[Path, str]]:
         if not entry.is_file():
             continue
         rel = entry.relative_to(issue_root)
+        top = rel.parts[0] if rel.parts else rel.as_posix()
+        if _should_exclude(top):
+            continue
         snap[rel.as_posix()] = (entry.resolve(), paths.sha256_file(entry))
     return snap
 
 
-def _carry(issue_root: Path, dest_root: Path) -> list[Path]:
-    """把允许随期的目录 / 文件迁到 ``dest_root``。
+def _move_issue_tree(src: Path, dest: Path) -> list[Path]:
+    """整期搬迁到 ``dest``，再删除排除项。返回 dest 下保留的顶层路径。"""
 
-    使用 ``shutil.move`` 整体搬迁子目录；返回迁走的顶层文件路径列表。
-    """
-
-    carried: list[Path] = []
-    paths.ensure_dir(dest_root)
-    for entry in sorted(issue_root.iterdir(), key=lambda p: p.name):
-        name = entry.name
-        if not _should_carry(name):
-            continue
-        target = dest_root / name
-        shutil.move(str(entry), str(target))
-        carried.append(target.resolve())
-    return carried
+    paths.ensure_dir(dest.parent)
+    try:
+        src.rename(dest)
+    except OSError:
+        shutil.move(str(src), str(dest))
+    for entry in list(dest.iterdir()):
+        if _should_exclude(entry.name):
+            if entry.is_dir():
+                shutil.rmtree(entry)
+            elif entry.is_file():
+                entry.unlink()
+    return [p.resolve() for p in dest.iterdir()]
 
 
 def archive_issue(issue_id: str, *, confirm_callback=prompt.confirm) -> ArchiveResult:
@@ -153,23 +155,20 @@ def archive_issue(issue_id: str, *, confirm_callback=prompt.confirm) -> ArchiveR
         f"将归档 {issue_id} 到 存档/，继续？", default_no=True
     ):
         raise PermissionError("用户取消归档")
-    carried = _carry(src, dst)
+    carried = _move_issue_tree(src, dst)
     diff = _verify_sha(snapshot, dst)
     if diff:
-        # 校验失败：把文件迁回去以保持幂等。
-        for top in dst.iterdir():
-            shutil.move(str(top), str(src / top.name))
-        raise RuntimeError(f"归档后哈希校验失败：{diff}")
-    # 清扫残留空目录 / 隐藏目录
-    for entry in list(src.iterdir()):
-        if entry.is_dir():
-            try:
-                entry.rmdir()  # 只删空目录
-            except OSError:
-                # 非空目录（含隐藏）交由人工处理；保持来源不被破坏。
-                continue
+        if src.exists():
+            for top in list(dst.iterdir()):
+                shutil.move(str(top), str(src / top.name))
+            if dst.exists():
+                try:
+                    dst.rmdir()
+                except OSError:
+                    shutil.rmtree(dst, ignore_errors=True)
         else:
-            entry.unlink()
+            dst.rename(src)
+        raise RuntimeError(f"归档后哈希校验失败：{diff}")
     return ArchiveResult(
         issue_id=issue_id,
         src=src.resolve(),

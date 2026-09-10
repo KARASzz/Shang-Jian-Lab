@@ -18,6 +18,13 @@ from 工作台.接口 import (
     ReviewIssue,
     ReviewVerdict,
 )
+from 工作台.流水线.prompts import request_model_of, system_prompt
+
+COLUMN_FOCUS: dict[str, str] = {
+    "大模型二三事": "审稿侧重：模型能力与宣传口径，禁止把能力演示写成全行业事实。",
+    "AI风险治理与审计": "审稿侧重：风险措施、法域和标准版本，禁止过期标准或无出处条款。",
+    "开源项目": "审稿侧重：许可证、维护状态和实测边界，禁止把 star 数写成质量证明。",
+}
 
 
 # 接口规范 §3 必阻断类别（与 配置/默认.toml ``[review]`` 完全一致）。
@@ -30,9 +37,9 @@ BLOCK_CATEGORIES: tuple[ReviewCategory, ...] = (
 
 
 def has_blocking_issue(verdict: ReviewVerdict) -> bool:
-    """任一阻断类出现 → 阻断；``score`` 不得救活。"""
+    """``severity==block`` 或四类必阻断类别出现 → 阻断；``score`` 不得救活。"""
     return any(
-        issue.severity == "block" and issue.category in BLOCK_CATEGORIES
+        issue.severity == "block" or issue.category in BLOCK_CATEGORIES
         for issue in verdict.issues
     )
 
@@ -51,10 +58,12 @@ class ReviewStage:
         reviewer: ModelClient,
         snapshot_id: str,
         block_categories: tuple[ReviewCategory, ...] = BLOCK_CATEGORIES,
+        column: str = "",
     ) -> None:
         self.reviewer = reviewer
         self.snapshot_id = snapshot_id
         self.block_categories = block_categories
+        self.column = column
 
     def build_request(
         self,
@@ -63,9 +72,16 @@ class ReviewStage:
         draft_text: str,
         previous_verdict: ReviewVerdict | None,
     ) -> ModelRequest:
+        focus = COLUMN_FOCUS.get(self.column, "")
         messages: list[dict] = [
-            {"role": "system", "content": "reviewer-system"},
-            {"role": "user", "content": f"稿件：{draft_path}\n\n{draft_text}"},
+            {"role": "system", "content": system_prompt("reviewer")},
+            {
+                "role": "user",
+                "content": (
+                    (f"{focus}\n\n" if focus else "")
+                    + f"稿件：{draft_path}\n\n{draft_text}"
+                ),
+            },
         ]
         if previous_verdict is not None:
             messages.append({
@@ -80,7 +96,7 @@ class ReviewStage:
             role="reviewer",
             messages=messages,
             temperature=0.2,
-            request_model="glm-5.1",
+            request_model=request_model_of(self.reviewer, "glm-5.1"),
             snapshot_id=self.snapshot_id,
         )
 
@@ -96,7 +112,7 @@ class ReviewStage:
         仅做兜底（mock-friendly），禁止在解析阶段掩盖阻断类。
         """
         try:
-            data = json.loads(text)
+            data = _loads_json_object(text)
             issues = [
                 ReviewIssue(
                     severity=item.get("severity", "minor"),
@@ -108,14 +124,17 @@ class ReviewStage:
                 )
                 for item in data.get("issues", [])
             ]
+            rec = data.get("recommendation", "draft_1")
+            if rec not in ("draft_1", "draft_2", "draft_3"):
+                rec = "draft_1"
             return compute_pass(ReviewVerdict(
                 draft_version=draft_version,
                 issues=issues,
                 score=float(data.get("score", 0.0)),
-                recommendation=data.get("recommendation", "draft_1"),
+                recommendation=rec,
                 pass_=False,
             ))
-        except (ValueError, KeyError, TypeError):
+        except (ValueError, KeyError, TypeError, AttributeError):
             # 解析失败按 0 分 + 全阻断处理；不静默通过
             return compute_pass(ReviewVerdict(
                 draft_version=draft_version,
@@ -145,15 +164,21 @@ class ReviewStage:
                 previous_verdict=previous_verdict,
             )
             resp = self.reviewer.chat(req)
+            if resp.raw_error:
+                raise RuntimeError(f"reviewer 失败：{resp.raw_error}")
             verdicts.append(self.parse_verdict(resp.text, draft_version=version))
         return verdicts
 
     def recommend(self, verdicts: list[ReviewVerdict]) -> ReviewVerdict:
-        """选推荐稿：未阻断且评分最高者。"""
+        """选推荐稿：未阻断且评分最高者；recommendation 对齐 winner 的 draft_version。"""
+        if not verdicts:
+            raise ValueError("没有审稿结论")
         candidates = [v for v in verdicts if v.pass_]
-        if not candidates:
-            return max(verdicts, key=lambda v: v.score)
-        return max(candidates, key=lambda v: v.score)
+        winner = max(candidates or verdicts, key=lambda v: v.score)
+        rec = winner.draft_version if winner.draft_version in (
+            "draft_1", "draft_2", "draft_3"
+        ) else winner.recommendation
+        return replace(winner, recommendation=rec)
 
     def run(
         self,
@@ -174,8 +199,8 @@ class ReviewStage:
             json.dumps(
                 {
                     "round": review_round,
-                    "verdicts": [v.__dict__ for v in verdicts],
-                    "recommendation": rec.__dict__,
+                    "verdicts": [asdict(v) for v in verdicts],
+                    "recommendation": asdict(rec),
                 },
                 ensure_ascii=False,
                 indent=2,
@@ -187,8 +212,27 @@ class ReviewStage:
         return state, verdicts, rec
 
 
+def _loads_json_object(text: str) -> dict:
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        lines = stripped.splitlines()
+        body = lines[1:]
+        if body and body[-1].strip().startswith("```"):
+            body = body[:-1]
+        stripped = "\n".join(body)
+    start = stripped.find("{")
+    end = stripped.rfind("}")
+    if start >= 0 and end > start:
+        stripped = stripped[start : end + 1]
+    data = json.loads(stripped)
+    if not isinstance(data, dict):
+        raise TypeError("审稿 JSON 必须是对象")
+    return data
+
+
 __all__ = [
     "BLOCK_CATEGORIES",
+    "COLUMN_FOCUS",
     "has_blocking_issue",
     "compute_pass",
     "ReviewStage",

@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
 from pathlib import Path
 
 from 工作台.接口 import ModelClient, ModelRequest
 from 工作台.流水线.checkpoint import (
     atomic_write_checkpoint,
+    commit_stage,
     record_version,
 )
-from 工作台.流水线.state import STAGE_ORDER
+from 工作台.流水线.prompts import request_model_of, system_prompt
+from 工作台.流水线.state import advance
 
 
 class DraftsStage:
@@ -36,7 +37,7 @@ class DraftsStage:
         evidence_ids: list[str],
     ) -> ModelRequest:
         messages = [
-            {"role": "system", "content": "writer-system"},
+            {"role": "system", "content": system_prompt("writer")},
             {
                 "role": "user",
                 "content": (
@@ -50,7 +51,7 @@ class DraftsStage:
             role="writer",
             messages=messages,
             temperature=0.7,
-            request_model="qwen3.7-plus",
+            request_model=request_model_of(self.writer, "qwen3.7-plus"),
             snapshot_id=self.snapshot_id,
         )
 
@@ -70,7 +71,10 @@ class DraftsStage:
         drafts_dir = Path(issue_dir) / "三篇初稿"
         drafts_dir.mkdir(parents=True, exist_ok=True)
 
+        start = {"draft_1": 1, "draft_2": 2, "draft_3": 3}.get(state.stage, 1)
         for i, angle in enumerate(angles, 1):
+            if i < start:
+                continue
             req = self.build_request(
                 angle=angle,
                 topic=topic,
@@ -83,14 +87,15 @@ class DraftsStage:
             md = resp.text
             (drafts_dir / f"初稿-{i}.md").write_text(md, encoding="utf-8")
             state = record_version(state, f"draft_{i}", md)
-            state = atomic_write_checkpoint(state, Path(issue_dir) / "运行记录")
-            # 顺序推到 draft_3 之后落到 review_1
-            state = replace(state)
-            from 工作台.流水线.state import advance
             if i < 3:
                 state = advance(state)
-        # 第 3 篇完成后正好落到 review_1
-        state = advance(state)
+                atomic_write_checkpoint(state, Path(issue_dir) / "运行记录")
+        state = commit_stage(
+            state,
+            Path(issue_dir) / "运行记录",
+            version_key="draft_3",
+            text=(drafts_dir / "初稿-3.md").read_text(encoding="utf-8"),
+        )
         return state, [drafts_dir / f"初稿-{i}.md" for i in (1, 2, 3)]
 
 

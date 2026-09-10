@@ -93,13 +93,12 @@ class StdioIO:
 
     def read_line(self) -> str:
         try:
-            return self.inp.readline()
+            line = self.inp.readline()
         except (KeyboardInterrupt, EOFError):
             return ""
-
-        if line is None:
+        if not line:
             return ""
-        return line.rstrip("\n")
+        return line.rstrip("\r\n")
 
 
 def _ask(io: MenuIO) -> str:
@@ -109,14 +108,26 @@ def _ask(io: MenuIO) -> str:
     return io.read_line().strip()
 
 
+def _ensure_local_config() -> None:
+    """首次运行把 ``默认.toml`` 复制为 ``本地.toml``（不含密钥）。"""
+
+    from .screens.config_screen import copy_default_to_local
+
+    default_path = paths.config_dir() / "默认.toml"
+    local_path = paths.config_dir() / "本地.toml"
+    if default_path.exists() and not local_path.exists():
+        copy_default_to_local(default_path, local_path)
+
+
 def run_loop(io: MenuIO | None = None) -> int:
     """主循环；返回退出码（``0`` = 正常退出）。"""
 
     io = io or StdioIO()
+    _ensure_local_config()
     io.println(MENU_BANNER)
     while True:
         choice = _ask(io)
-        if choice == "0":
+        if choice in {"0", ""}:
             io.println("已退出。")
             return 0
         handler = _HANDLERS.get(choice)

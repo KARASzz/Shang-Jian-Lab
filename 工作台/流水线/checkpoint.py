@@ -126,6 +126,22 @@ def record_version(state: TaskState, stage: str, text: str) -> TaskState:
     return _replace(state, versions=versions)
 
 
+def commit_stage(
+    state: TaskState,
+    log_dir: str | os.PathLike[str],
+    *,
+    version_key: str,
+    text: str,
+    event: str = "ok",
+) -> TaskState:
+    """记录产物哈希 → 推进阶段 → 原子写入 checkpoint（磁盘 stage 与内存一致）。"""
+    from 工作台.流水线.state import advance
+
+    state = record_version(state, version_key, text)
+    state = advance(state, event=event)
+    return atomic_write_checkpoint(state, log_dir)
+
+
 __all__ = [
     "CheckpointError",
     "VersionMixingError",
@@ -135,5 +151,6 @@ __all__ = [
     "load_checkpoint",
     "verify_versions",
     "record_version",
+    "commit_stage",
     "file_hash",
 ]

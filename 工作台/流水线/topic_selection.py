@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
+import json
 from pathlib import Path
 
 from 工作台.接口 import ModelClient, ModelRequest, UserInput
-from 工作台.流水线.checkpoint import (
-    atomic_write_checkpoint,
-    record_version,
-)
+from 工作台.流水线.checkpoint import commit_stage
+from 工作台.流水线.prompts import request_model_of, system_prompt
 
 
 class TopicSelectionStage:
@@ -28,7 +26,7 @@ class TopicSelectionStage:
 
     def build_request(self, *, column: str, recent_issues: list[str]) -> ModelRequest:
         messages = [
-            {"role": "system", "content": "planner-system"},  # 占位：真实系统提示词见 提示词/
+            {"role": "system", "content": system_prompt("planner")},
             {
                 "role": "user",
                 "content": (
@@ -42,7 +40,7 @@ class TopicSelectionStage:
             role="planner",
             messages=messages,
             temperature=0.4,
-            request_model="MiniMax-M3",
+            request_model=request_model_of(self.planner, "MiniMax-M3"),
             snapshot_id=self.snapshot_id,
         )
 
@@ -85,11 +83,18 @@ class TopicSelectionStage:
         topic_dir = Path(issue_dir) / "选题"
         topic_dir.mkdir(parents=True, exist_ok=True)
         (topic_dir / "选题-候选.md").write_text(md, encoding="utf-8")
+        (topic_dir / "选定.json").write_text(
+            json.dumps({"topic": choice, "column": column}, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
 
-        state = record_version(state, "topic_selection", md)
-        atomic_write_checkpoint(state, Path(issue_dir) / "运行记录")
-        from 工作台.流水线.state import advance
-        return advance(state), md
+        state = commit_stage(
+            state,
+            Path(issue_dir) / "运行记录",
+            version_key="topic_selection",
+            text=md,
+        )
+        return state, md
 
 
 __all__ = ["TopicSelectionStage"]

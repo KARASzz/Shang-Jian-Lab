@@ -107,16 +107,15 @@ def build_rerun_plan(issue_root: Path, upstream: str) -> RerunPlan:
     )
 
 
-def _notify_orchestrator_rerun(plan: RerunPlan) -> None:
-    try:
-        from 工作台.流水线 import orchestrator  # type: ignore[import-not-found]
-    except ImportError:
-        raise NotImplementedError(
-            "工作台.流水线.orchestrator 尚未由 B 子智能体实现；菜单仅做调度。"
-        ) from None
-    if not hasattr(orchestrator, "rerun"):
-        raise NotImplementedError("orchestrator.rerun 接口缺失，请联系 B 子智能体补齐。")
-    orchestrator.rerun(issue_id=plan.issue_id, upstream=plan.upstream, invalidate=plan.will_invalidate)
+def _notify_orchestrator_rerun(plan: RerunPlan, issue_root: Path) -> None:
+    from 工作台.流水线.orchestrator import rerun as orch_rerun
+
+    orch_rerun(
+        issue_id=plan.issue_id,
+        upstream=plan.upstream,
+        invalidate=plan.will_invalidate,
+        issue_root=issue_root,
+    )
 
 
 def run(io) -> None:
@@ -144,11 +143,11 @@ def run(io) -> None:
     if not prompt.confirm("确认重跑？", default_no=True):
         io.println("已取消。")
         return
-    _persist_invalidation(issue_root, plan.upstream, plan.will_invalidate)
     try:
-        _notify_orchestrator_rerun(plan)
-    except NotImplementedError as exc:
-        io.println(f"流水线尚未就绪（{exc}），仅记录过期阶段。")
+        _notify_orchestrator_rerun(plan, issue_root)
+        io.println("已按上游阶段重跑。")
+    except Exception as exc:  # noqa: BLE001
+        io.println(f"重跑失败：{type(exc).__name__}: {exc}")
 
 
 __all__ = ["STAGE_ORDER", "RerunPlan", "build_rerun_plan", "compute_invalidation", "parse_stage", "run"]

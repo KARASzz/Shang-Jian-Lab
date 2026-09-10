@@ -45,20 +45,11 @@ def resume_latest() -> Path | None:
 
 
 def _notify_orchestrator_resume(issue_root: Path, state: dict[str, Any]) -> None:
-    """调用 :mod:`工作台.流水线.orchestrator` 的 ``resume`` 接口。
+    """调用流水线 ``resume`` 从 checkpoint 续跑。"""
 
-    该接口由 B 提供；当前未到位，调用即抛 ``NotImplementedError`` 占位。
-    """
+    from 工作台.流水线.orchestrator import resume as orch_resume
 
-    try:
-        from 工作台.流水线 import orchestrator  # type: ignore[import-not-found]
-    except ImportError:
-        raise NotImplementedError(
-            "工作台.流水线.orchestrator 尚未由 B 子智能体实现；菜单仅做调度。"
-        ) from None
-    if not hasattr(orchestrator, "resume"):
-        raise NotImplementedError("orchestrator.resume 接口缺失，请联系 B 子智能体补齐。")
-    orchestrator.resume(issue_root=issue_root, stage=state.get("stage"))
+    orch_resume(issue_root=issue_root, stage=state.get("stage"))
 
 
 def run(io) -> None:
@@ -77,8 +68,9 @@ def run(io) -> None:
     io.println(f"已标过期：{', '.join(state.get('rerun_invalidated', [])) or '无'}")
     try:
         _notify_orchestrator_resume(issue_root, state)
-    except NotImplementedError as exc:
-        io.println(f"流水线尚未就绪（{exc}），仅展示状态。")
+        io.println("已续跑本期流水线。")
+    except Exception as exc:  # noqa: BLE001 — 菜单兜底，展示原因
+        io.println(f"续跑失败：{type(exc).__name__}: {exc}")
 
 
 __all__ = ["load_checkpoint", "locate_latest_issue", "resume_latest", "run"]

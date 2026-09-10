@@ -29,6 +29,7 @@ from 工作台.接入.models.errors import (
     AuthError,
     NetworkError,
     RateLimitError,
+    RoleMismatchError,
     TimeoutError,
 )
 from 工作台.接入.models.schemas import (
@@ -60,18 +61,28 @@ class ModelClient:
 
     # ------------------------------------------------------------------ public
 
+    def chat(self, request: ModelRequest) -> ModelResponse:
+        """接口规范 §1：流水线通过 ``chat`` 调用；与 ``complete`` 同一实现。"""
+
+        return self.complete(request)
+
     def complete(self, request: ModelRequest) -> ModelResponse:
         """发送一次 Chat Completions 请求并归一化错误。"""
 
         if request.role != self._config.role:
-            # 岗位硬绑定：不允许运行时换模型
-            raise AuthError(
+            raise RoleMismatchError(
                 f"role 与 config 不一致：request.role={request.role!r}, "
                 f"config.role={self._config.role!r}",
                 status_code=None,
             )
         if not request.request_model:
-            raise AuthError("ModelRequest.request_model 为空，岗位未冻结")
+            raise RoleMismatchError("ModelRequest.request_model 为空，岗位未冻结")
+        if request.request_model != self._config.request_model:
+            raise RoleMismatchError(
+                f"request_model 与本期冻结不一致：request={request.request_model!r}, "
+                f"config={self._config.request_model!r}",
+                status_code=None,
+            )
 
         api_key = resolve_api_key(self._config.api_key_env)
         if api_key is None:
@@ -95,9 +106,10 @@ class ModelClient:
         )
 
         payload = self._build_payload(request)
-        attempts = max(1, int(self._config.max_retries))
+        # max_retries=2 → 共 3 次（1 初始 + 2 重试）；max_retries=0 → 只打 1 次。
+        total_tries = max(1, int(self._config.max_retries) + 1)
         last_exc: Exception | None = None
-        for attempt in range(attempts + 1):
+        for attempt in range(total_tries):
             try:
                 return self._do_call(endpoint, api_key, payload)
             except AuthError:
@@ -105,12 +117,12 @@ class ModelClient:
                 raise
             except RateLimitError as e:
                 last_exc = e
-                if attempt >= attempts:
+                if attempt >= total_tries - 1:
                     raise
                 self._respect_retry_after(e)
             except (TimeoutError, NetworkError) as e:
                 last_exc = e
-                if attempt >= attempts:
+                if attempt >= total_tries - 1:
                     raise
                 # 简单退避：2^attempt 秒
                 self._sleeper(min(2 ** attempt, 8))
@@ -204,10 +216,7 @@ class ModelClient:
             raise RateLimitError(
                 f"HTTP 429：限流（{body[:200]!s}）",
                 status_code=status,
-            ).with_retry_after(retry_after) if False else RateLimitError(  # type: ignore[misc]
-                f"HTTP 429：限流（{body[:200]!s}）",
-                status_code=status,
-            )
+            ).with_retry_after(retry_after)
         raise NetworkError(
             f"HTTP {status}：模型调用失败（{body[:200]!s}）", status_code=status
         )

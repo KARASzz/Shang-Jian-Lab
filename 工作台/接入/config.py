@@ -157,7 +157,7 @@ def _parse_bing(raw: dict[str, Any]) -> PublicSearchConfig:
 
 
 def _parse_pipeline(raw: dict[str, Any]) -> PipelineConfig:
-    return PipelineConfig(
+    cfg = PipelineConfig(
         deep_search_rounds_max=int(raw["deep_search_rounds_max"]),
         deep_search_unique_sources_max=int(raw["deep_search_unique_sources_max"]),
         site_depth_max=int(raw["site_depth_max"]),
@@ -165,6 +165,9 @@ def _parse_pipeline(raw: dict[str, Any]) -> PipelineConfig:
         network_retry_max=int(raw["network_retry_max"]),
         auth_failure_abort=bool(raw["auth_failure_abort"]),
     )
+    if not cfg.auth_failure_abort:
+        raise ConfigError("[pipeline] auth_failure_abort 必须保持 true")
+    return cfg
 
 
 def _parse_review(raw: dict[str, Any]) -> ReviewConfig:
@@ -324,4 +327,7 @@ def resolve_api_key(env_name: str) -> str | None:
 
 
 def resolve_base_url(env_name: str) -> str | None:
-    return os.environ.get(env_name)
+    val = os.environ.get(env_name)
+    if val is None or val.strip() == "":
+        return None
+    return val.strip()

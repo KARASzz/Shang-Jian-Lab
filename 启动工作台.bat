@@ -20,6 +20,7 @@ chcp 65001 > nul
 rem 强制 Python I/O 使用 UTF-8；中文路径 / 中文菜单都需要。
 set PYTHONIOENCODING=utf-8
 set PYTHONUTF8=1
+set "PYTHONPATH=%~dp0;%PYTHONPATH%"
 
 rem 透传命令行参数；菜单当前未读取，但保留扩展空间。
 python -m 工作台.菜单.app %*

@@ -3,8 +3,10 @@
 from 工作台.接入.models.client import ModelClient
 from 工作台.接入.models.errors import (
     AuthError,
+    ModelCallError,
     NetworkError,
     RateLimitError,
+    RoleMismatchError,
     TimeoutError,
 )
 from 工作台.接入.models.schemas import ModelRequest, ModelResponse, TokenUsage
@@ -12,8 +14,10 @@ from 工作台.接入.models.schemas import ModelRequest, ModelResponse, TokenUs
 __all__ = [
     "ModelClient",
     "AuthError",
+    "ModelCallError",
     "NetworkError",
     "RateLimitError",
+    "RoleMismatchError",
     "TimeoutError",
     "ModelRequest",
     "ModelResponse",

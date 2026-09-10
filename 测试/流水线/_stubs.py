@@ -28,11 +28,19 @@ class StubModel:
                 text="", request_model=req.request_model,
                 served_model=req.request_model, raw_error="simulated failure",
             )
-        text = {
-            "planner": self.planner_text,
-            "writer": self.writer_text,
-            "reviewer": self.reviewer_text,
-        }[req.role]
+        if req.role == "planner":
+            user_content = ""
+            if req.messages:
+                user_content = str(req.messages[-1].get("content", ""))
+            if "三个不同角度" in user_content or "三角度" in user_content:
+                text = "## 角度甲\n中心判断甲\n## 角度乙\n中心判断乙\n## 角度丙\n中心判断丙"
+            else:
+                text = self.planner_text
+        else:
+            text = {
+                "writer": self.writer_text,
+                "reviewer": self.reviewer_text,
+            }[req.role]
         return ModelResponse(
             text=text,
             request_model=req.request_model,

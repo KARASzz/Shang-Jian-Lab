@@ -12,7 +12,7 @@ PLAN §3 步骤 1–8 串成一次完整流水线（除步骤 8「用户导入�
 
 from __future__ import annotations
 
-from dataclasses import replace
+import json
 from pathlib import Path
 from typing import Iterable
 
@@ -30,14 +30,15 @@ from 工作台.流水线.checkpoint import (
 from 工作台.流水线.drafts import DraftsStage
 from 工作台.流水线.evidence import EvidenceCollectionStage
 from 工作台.流水线.finalizing import FinalizingStage
-from 工作台.流水线.planning import PlanningStage
+from 工作台.流水线.planning import PlanningStage, extract_angles
 from 工作台.流水线.review import ReviewStage, has_blocking_issue
 from 工作台.流水线.revise import MaxRevisionsExceeded, ReviseStage
 from 工作台.流水线.state import (
     FINALIZING,
     STAGE_ORDER,
     advance,
-    rerun,
+    rerun as mark_rerun,
+    resume_after_rerun,
 )
 from 工作台.流水线.topic_selection import TopicSelectionStage
 
@@ -85,12 +86,15 @@ class Orchestrator:
         )
         self.planning_stage = PlanningStage(planner=planner, snapshot_id=snapshot_id)
         self.drafts_stage = DraftsStage(writer=writer, snapshot_id=snapshot_id)
-        self.review_stage = ReviewStage(reviewer=reviewer, snapshot_id=snapshot_id)
+        self.review_stage = ReviewStage(
+            reviewer=reviewer, snapshot_id=snapshot_id, column=column,
+        )
         self.revise_stage = ReviseStage(
             writer=writer,
             reviewer=reviewer,
             snapshot_id=snapshot_id,
             revision_rounds_max=revision_rounds_max,
+            column=column,
         )
         self.finalizing_stage = FinalizingStage(writer=writer, snapshot_id=snapshot_id)
 
@@ -129,7 +133,7 @@ class Orchestrator:
 
         # 2) 证据
         if state.stage == "evidence_collection":
-            topic = self.topic_seed or self.column
+            topic = self._selected_topic()
             state, _sources = self.evidence_stage.run(
                 state,
                 issue_dir=self.issue_dir,
@@ -139,11 +143,8 @@ class Orchestrator:
 
         # 3) 策划
         if state.stage == "planning":
-            plan_path = Path(self.issue_dir) / "策划" / "三角度策划.md"
-            plan_text = plan_path.read_text(encoding="utf-8") if plan_path.exists() else ""
-            angles = self._extract_angles(plan_text)
             evidence_ids = self._collect_evidence_ids()
-            topic = self.topic_seed or self.column
+            topic = self._selected_topic()
             state, _plan = self.planning_stage.run(
                 state,
                 issue_dir=self.issue_dir,
@@ -154,9 +155,9 @@ class Orchestrator:
         # 4) 三稿
         if state.stage in ("draft_1", "draft_2", "draft_3"):
             plan_text = self._read(Path(self.issue_dir) / "策划" / "三角度策划.md")
-            angles = self._extract_angles(plan_text)
+            angles = extract_angles(plan_text)
             evidence_ids = self._collect_evidence_ids()
-            topic = self.topic_seed or self.column
+            topic = self._selected_topic()
             state, _paths = self.drafts_stage.run(
                 state,
                 issue_dir=self.issue_dir,
@@ -177,6 +178,7 @@ class Orchestrator:
                 review_round=1,
             )
             state = self._enter_post_review(state, rec)
+            self.save_state(state)
 
         # 6) 返修循环（含 review_2）
         if state.stage in ("revise_1", "review_2", "revise_2"):
@@ -188,6 +190,7 @@ class Orchestrator:
         ):
             state = self._finalize(state)
 
+        self.save_state(state)
         return state
 
     # ---------------- 子流程 ----------------
@@ -201,9 +204,6 @@ class Orchestrator:
         return state
 
     def _run_revise_loop(self, state):
-        # 先找到最近一次 verdict
-        verdict = self._last_verdict() if hasattr(self, "_last_verdict") else None
-        # 简化：从 review json 中读
         verdict = self._load_latest_verdict()
         rec_text, rec_verdict = self._recommended_draft_and_verdict(verdict)
         draft_text = rec_text
@@ -246,19 +246,19 @@ class Orchestrator:
 
     # ---------------- 辅助 ----------------
 
-    def _extract_angles(self, plan_text: str) -> list[str]:
-        """骨架解析：每个一级或二级标题视为一个角度；不足 3 个回退到占位。"""
-        angles = [
-            line.strip("# ").strip()
-            for line in plan_text.splitlines()
-            if line.strip().startswith("#") and line.strip().lstrip("#").strip()
-        ]
-        while len(angles) < 3:
-            angles.append(f"占位角度 {len(angles) + 1}")
-        return angles[:3]
+    def _selected_topic(self) -> str:
+        path = Path(self.issue_dir) / "选题" / "选定.json"
+        if path.exists():
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+                topic = str(data.get("topic") or "").strip()
+                if topic:
+                    return topic
+            except json.JSONDecodeError:
+                pass
+        return self.topic_seed or self.column
 
     def _collect_evidence_ids(self) -> list[str]:
-        import json
         path = Path(self.issue_dir) / "资料" / "证据清单.json"
         if not path.exists():
             return []
@@ -286,7 +286,6 @@ class Orchestrator:
 
     def _load_latest_verdict(self):
         """读取 ``审稿-复审.json``，不存在则回退 ``审稿-初轮.json``。"""
-        import json
         from 工作台.接口 import ReviewVerdict, ReviewIssue
 
         for fname in ("审稿-复审.json", "审稿-初轮.json"):
@@ -320,9 +319,11 @@ class Orchestrator:
         ])
 
     def _recommended_draft_and_verdict(self, verdict):
-        """根据 verdict.recommendation 取初稿正文。"""
-        from 工作台.接口 import ReviewVerdict
-        rec = verdict.recommendation
+        """优先取返修稿；否则按 draft_version / recommendation 取初稿。"""
+        revised = Path(self.issue_dir) / "审稿与返修" / "推荐修订.md"
+        if revised.exists():
+            return revised.read_text(encoding="utf-8"), verdict
+        rec = verdict.draft_version or verdict.recommendation
         idx = {"draft_1": 1, "draft_2": 2, "draft_3": 3}.get(rec, 1)
         path = Path(self.issue_dir) / "三篇初稿" / f"初稿-{idx}.md"
         text = path.read_text(encoding="utf-8") if path.exists() else ""
@@ -332,10 +333,92 @@ class Orchestrator:
         return self._load_latest_verdict().pass_
 
     def _persist_revised(self, state, draft_text: str, verdict) -> None:
-        """复审通过时把修订稿覆盖推荐稿位置，供 finalizing 复用。"""
+        """复审通过时把修订稿落到磁盘，供 finalizing 复用。"""
         from 工作台.流水线.checkpoint import record_version
+
+        review_dir = Path(self.issue_dir) / "审稿与返修"
+        review_dir.mkdir(parents=True, exist_ok=True)
+        (review_dir / "推荐修订.md").write_text(draft_text, encoding="utf-8")
         new_state = record_version(state, "draft_recommended", draft_text)
         self.save_state(new_state)
 
 
-__all__ = ["Orchestrator"]
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def _parse_column(issue_id: str) -> str:
+    parts = issue_id.split("-")
+    return "-".join(parts[6:]) if len(parts) > 6 else issue_id
+
+
+def _find_issue_dir(issue_id: str, issue_root: str | Path | None = None) -> Path:
+    if issue_root is not None:
+        return Path(issue_root)
+    return _repo_root() / "进行中" / issue_id
+
+
+def build_orchestrator(issue_root: str | Path, *, user=None) -> Orchestrator:
+    """按本地配置组装真实客户端。测试可注入 ``user``；缺密钥时由 ModelClient 抛 AuthError。"""
+    from 工作台.接入.config import ConfigError, load_default_config, load_local_config
+    from 工作台.接入.envfile import load_env_files
+    from 工作台.接入.models.client import ModelClient
+    from 工作台.接入.search.composite import CompositeSearch
+    from 工作台.流水线.cli_user import CliUser
+
+    root = _repo_root()
+    load_env_files(root)
+    try:
+        cfg = load_local_config(root)
+    except ConfigError:
+        cfg = load_default_config(root)
+    issue_path = Path(issue_root)
+    issue_id = issue_path.name
+    pipe = cfg.pipeline
+    return Orchestrator(
+        issue_id=issue_id,
+        issue_dir=str(issue_path),
+        snapshot_id=str((root / "配置" / "本期.toml").resolve()),
+        planner=ModelClient(cfg.models["planner"]),
+        writer=ModelClient(cfg.models["writer"]),
+        reviewer=ModelClient(cfg.models["reviewer"]),
+        search=CompositeSearch(cfg),
+        user=user or CliUser(),
+        column=_parse_column(issue_id),
+        revision_rounds_max=pipe.revision_rounds_max if pipe else 2,
+        deep_search_rounds_max=pipe.deep_search_rounds_max if pipe else 2,
+        deep_search_unique_max=pipe.deep_search_unique_sources_max if pipe else 30,
+        site_depth_max=pipe.site_depth_max if pipe else 2,
+    )
+
+
+def resume(*, issue_root, stage=None, orchestrator=None, user=None, **_):
+    """菜单 2 入口：从 checkpoint 续跑。"""
+    root = Path(issue_root)
+    orch = orchestrator or build_orchestrator(root, user=user)
+    state = orch.load_state()
+    current = {}
+    for key, rel in (
+        ("topic_selection", Path("选题") / "选题-候选.md"),
+        ("planning", Path("策划") / "三角度策划.md"),
+    ):
+        path = root / rel
+        if path.exists():
+            from 工作台.流水线.checkpoint import file_hash
+            current[key] = file_hash(path)
+    if state.rerun_invalidated:
+        resume_after_rerun(state, current)
+    return orch.run_issue()
+
+
+def rerun(*, issue_id, upstream, invalidate=None, issue_root=None, orchestrator=None, user=None, **_):
+    """菜单 4 入口：把阶段打回 upstream 并续跑。"""
+    root = _find_issue_dir(issue_id, issue_root)
+    orch = orchestrator or build_orchestrator(root, user=user)
+    state = orch.load_state()
+    state = mark_rerun(state, upstream)
+    orch.save_state(state)
+    return orch.run_issue()
+
+
+__all__ = ["Orchestrator", "build_orchestrator", "resume", "rerun"]

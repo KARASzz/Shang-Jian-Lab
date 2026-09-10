@@ -52,3 +52,26 @@ class BraveMCPClient:
         """工具发现占位：返回空列表。真实握手后由 MCP 协议列出工具名。"""
 
         return []
+
+    def search(self, query: str, *, round_idx: int = 0) -> list:
+        from 工作台.接入.search.schemas import SearchSource
+
+        print(f"[调试] Brave 搜索占位：query={query!r} round_idx={round_idx}")
+        return [
+            SearchSource(
+                id=f"brave-unavail-r{round_idx}",
+                url=self._config.url,
+                title="Brave MCP 未启用（占位，未握手）",
+                publisher=None,
+                published_at=None,
+                accessed_at="",
+                excerpt=query,
+                locator=None,
+                body_path=None,
+                status="fetch_failed",
+                channel="brave",
+            )
+        ]
+
+    def fetch(self, source):
+        return source

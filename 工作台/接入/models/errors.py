@@ -19,6 +19,10 @@ class AuthError(ModelCallError):
     """HTTP 401/403：认证失败。规范 §5 要求直接停止并提示用户，禁止重试。"""
 
 
+class RoleMismatchError(ModelCallError):
+    """岗位 role / request_model 与本期冻结配置不一致。不是认证失败。"""
+
+
 class RateLimitError(ModelCallError):
     """HTTP 429：限流。规范 §5 允许最多 2 次重试，含 Retry-After 时遵守。"""
 

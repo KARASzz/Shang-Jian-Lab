@@ -10,15 +10,16 @@ from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
 
+import json
+from dataclasses import asdict
+
 from 工作台.接口 import (
     ModelClient,
     ModelRequest,
     ReviewVerdict,
 )
-from 工作台.流水线.checkpoint import (
-    atomic_write_checkpoint,
-    record_version,
-)
+from 工作台.流水线.checkpoint import commit_stage
+from 工作台.流水线.prompts import request_model_of, system_prompt
 from 工作台.流水线.review import ReviewStage, has_blocking_issue
 
 
@@ -36,6 +37,7 @@ class ReviseStage:
         reviewer: ModelClient,
         snapshot_id: str,
         revision_rounds_max: int = 2,
+        column: str = "",
     ) -> None:
         if revision_rounds_max < 0:
             raise ValueError("revision_rounds_max 不能为负")
@@ -46,6 +48,7 @@ class ReviseStage:
         self._review = ReviewStage(
             reviewer=reviewer,
             snapshot_id=snapshot_id,
+            column=column,
         )
 
     def build_revise_request(
@@ -58,24 +61,25 @@ class ReviseStage:
         return ModelRequest(
             role="writer",
             messages=[
-                {"role": "system", "content": "writer-system"},
+                {"role": "system", "content": system_prompt("writer")},
                 {
                     "role": "user",
                     "content": (
                         f"返修轮次：{round_idx}\n"
-                        f"上一轮问题：\n{verdict.__dict__}\n"
+                        f"上一轮问题：\n{json.dumps(asdict(verdict), ensure_ascii=False)}\n"
                         f"原稿：\n{draft_text}"
                     ),
                 },
             ],
             temperature=0.7,
-            request_model="qwen3.7-plus",
+            request_model=request_model_of(self.writer, "qwen3.7-plus"),
             snapshot_id=self.snapshot_id,
         )
 
     def _revise_once(
         self,
         *,
+        state,
         issue_dir: Path,
         draft_text: str,
         verdict: ReviewVerdict,
@@ -90,14 +94,14 @@ class ReviseStage:
             raise RuntimeError(f"writer 返修失败：{resp.raw_error}")
         new_text = resp.text
 
-        # 复审
-        new_verdicts = self._review.review_drafts(
-            [(f"revise_{round_idx}", new_text)],
+        _, _verdicts, new_verdict = self._review.run(
+            state,
+            issue_dir=str(issue_dir),
+            drafts=[(f"revise_{round_idx}", new_text)],
             previous_verdict=verdict,
+            review_round=2,
         )
-        new_verdict = new_verdicts[0]
 
-        # 落盘
         review_dir = issue_dir / "审稿与返修"
         review_dir.mkdir(parents=True, exist_ok=True)
         (review_dir / f"返修-{round_idx}.md").write_text(new_text, encoding="utf-8")
@@ -127,15 +131,18 @@ class ReviseStage:
 
         for round_idx in range(1, rounds + 1):
             current_text, current_verdict = self._revise_once(
+                state=state,
                 issue_dir=issue_path,
                 draft_text=current_text,
                 verdict=current_verdict,
                 round_idx=round_idx,
             )
-            state = record_version(state, f"revise_{round_idx}", current_text)
-            state = atomic_write_checkpoint(state, issue_path / "运行记录")
-            from 工作台.流水线.state import advance
-            state = advance(state)
+            state = commit_stage(
+                state,
+                issue_path / "运行记录",
+                version_key=f"revise_{round_idx}",
+                text=current_text,
+            )
             if not has_blocking_issue(current_verdict):
                 return state, current_text, current_verdict
 

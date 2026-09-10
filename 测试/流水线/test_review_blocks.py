@@ -75,8 +75,8 @@ class NonBlockingIssueTests(unittest.TestCase):
         v2 = compute_pass(v)
         self.assertTrue(v2.pass_)
 
-    def test_block_with_non_block_category_does_not_block(self):
-        # 阻断严重度 + 非必阻断类别 → 不阻断（接口规范 §3）
+    def test_block_severity_always_blocks(self):
+        # 接口规范 §3：severity == block 条数 > 0 → pass_=False
         v = ReviewVerdict(
             draft_version="draft_1",
             issues=[ReviewIssue(severity="block", category="tone")],
@@ -85,7 +85,18 @@ class NonBlockingIssueTests(unittest.TestCase):
             pass_=True,
         )
         v2 = compute_pass(v)
-        self.assertTrue(v2.pass_)
+        self.assertFalse(v2.pass_)
+
+    def test_required_category_blocks_even_if_marked_major(self):
+        v = ReviewVerdict(
+            draft_version="draft_1",
+            issues=[ReviewIssue(severity="major", category="fabricated_citation")],
+            score=99,
+            recommendation="draft_1",
+            pass_=True,
+        )
+        v2 = compute_pass(v)
+        self.assertFalse(v2.pass_)
 
 
 if __name__ == "__main__":

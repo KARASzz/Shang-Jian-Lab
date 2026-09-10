@@ -17,6 +17,7 @@ from 工作台.流水线.state import (
     STAGE_ORDER,
     advance,
     rerun,
+    resume_after_rerun,
 )
 
 
@@ -93,6 +94,38 @@ class VersionMixingTests(unittest.TestCase):
         s = record_version(s, "draft_1", "hello")
         # 缺失视为未变更
         verify_versions(s, {})
+
+    def test_resume_after_rerun_raises_on_upstream_mismatch(self):
+        import hashlib
+
+        def digest(text: str) -> str:
+            return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+        s = _ts()
+        s = record_version(s, "topic_selection", "topic-v1")
+        s = record_version(s, "planning", "plan-v1")
+        s = rerun(s, "planning")
+        with self.assertRaises(VersionMixingError):
+            resume_after_rerun(s, {
+                "topic_selection": digest("tampered"),
+                "planning": digest("plan-v1"),
+            })
+
+    def test_resume_after_rerun_allows_invalidated_stage_to_change(self):
+        import hashlib
+
+        def digest(text: str) -> str:
+            return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+        s = _ts()
+        s = record_version(s, "topic_selection", "topic-v1")
+        s = record_version(s, "planning", "plan-v1")
+        s = rerun(s, "planning")
+        out = resume_after_rerun(s, {
+            "topic_selection": digest("topic-v1"),
+            "planning": digest("plan-v2"),
+        })
+        self.assertEqual(out.stage, "planning")
 
 
 if __name__ == "__main__":

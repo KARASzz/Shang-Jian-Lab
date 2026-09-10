@@ -5,13 +5,16 @@ from 工作台.接入.discovery import discover_all, MCPDiscoveryResult
 from 工作台.接入.models.client import ModelClient
 from 工作台.接入.models.errors import (
     AuthError,
+    ModelCallError,
     NetworkError,
     RateLimitError,
+    RoleMismatchError,
     TimeoutError,
 )
 from 工作台.接入.models.schemas import ModelRequest, ModelResponse, TokenUsage
 from 工作台.接入.search.bing_public import BingPublicSearch
 from 工作台.接入.search.brave_mcp import BraveMCPClient
+from 工作台.接入.search.composite import CompositeSearch
 from 工作台.接入.search.schemas import SearchSource
 from 工作台.接入.search.tavily_mcp import TavilyMCPClient
 
@@ -22,14 +25,17 @@ __all__ = [
     "MCPDiscoveryResult",
     "ModelClient",
     "AuthError",
+    "ModelCallError",
     "NetworkError",
     "RateLimitError",
+    "RoleMismatchError",
     "TimeoutError",
     "ModelRequest",
     "ModelResponse",
     "TokenUsage",
     "BingPublicSearch",
     "BraveMCPClient",
+    "CompositeSearch",
     "SearchSource",
     "TavilyMCPClient",
 ]

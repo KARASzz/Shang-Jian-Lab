@@ -16,6 +16,7 @@ from 工作台.接入.models.errors import (
     AuthError,
     NetworkError,
     RateLimitError,
+    RoleMismatchError,
     TimeoutError,
 )
 from 工作台.接入.models.schemas import ModelRequest
@@ -83,7 +84,7 @@ class ModelClientAuthTests(unittest.TestCase):
         with self.assertRaises(AuthError):
             client.complete(req)
 
-    def test_role_mismatch_raises_auth_error(self) -> None:
+    def test_role_mismatch_raises_role_mismatch_error(self) -> None:
         import os
 
         os.environ["TEST_API_KEY"] = "test-key"
@@ -91,7 +92,7 @@ class ModelClientAuthTests(unittest.TestCase):
         cfg = _make_config()
         client = ModelClient(cfg, sleeper=MagicMock(), clock=MagicMock())
         req = _make_request(role="writer")  # 与 config.role=planner 不一致
-        with self.assertRaises(AuthError):
+        with self.assertRaises(RoleMismatchError):
             client.complete(req)
 
 
@@ -280,6 +281,118 @@ class ModelClientPayloadTests(unittest.TestCase):
         self.assertEqual(body["messages"], [{"role": "user", "content": "hi"}])
         # 关键：request_model 在请求体里随配置固定
         self.assertEqual(body["model"], cfg.request_model)
+
+
+class ModelClientContractTests(unittest.TestCase):
+    """接口规范：chat()、Retry-After、岗位冻结、空 URL、max_retries=0。"""
+
+    def setUp(self) -> None:
+        import os
+
+        os.environ["TEST_API_KEY"] = "test-key"
+        os.environ["TEST_BASE_URL"] = "https://example.com/v1"
+
+    def test_chat_aliases_complete(self) -> None:
+        opener = MagicMock()
+        opener.open.return_value = _http_response(
+            200,
+            {
+                "model": "MiniMax-M3",
+                "choices": [{"message": {"content": "via-chat"}}],
+                "usage": {},
+            },
+        )
+        client = ModelClient(
+            _make_config(),
+            http_opener=lambda: opener,
+            sleeper=MagicMock(),
+            clock=lambda: 0.0,
+        )
+        resp = client.chat(_make_request())
+        self.assertEqual(resp.text, "via-chat")
+        self.assertEqual(opener.open.call_count, 1)
+
+    def test_http_429_respects_retry_after_seconds(self) -> None:
+        sleeper = MagicMock()
+        opener = MagicMock()
+        rl_err = urllib.error.HTTPError(
+            "https://example.com/v1/chat/completions",
+            429,
+            "Too Many Requests",
+            {"Retry-After": "7"},
+            BytesIO(b'{"error":"rate"}'),
+        )
+        ok = _http_response(
+            200,
+            {
+                "model": "MiniMax-M3",
+                "choices": [{"message": {"content": "ok"}}],
+                "usage": {},
+            },
+        )
+        opener.open.side_effect = [rl_err, ok]
+        client = ModelClient(
+            _make_config(max_retries=2),
+            http_opener=lambda: opener,
+            sleeper=sleeper,
+            clock=lambda: 0.0,
+        )
+        client.complete(_make_request())
+        sleeper.assert_called()
+        waited = sleeper.call_args[0][0]
+        self.assertEqual(waited, 7.0)
+
+    def test_request_model_mismatch_is_not_auth_error(self) -> None:
+        from 工作台.接入.models.errors import AuthError, ModelCallError
+
+        opener = MagicMock()
+        client = ModelClient(
+            _make_config(),
+            http_opener=lambda: opener,
+            sleeper=MagicMock(),
+            clock=lambda: 0.0,
+        )
+        req = _make_request(request_model="some-other-model")
+        with self.assertRaises(ModelCallError) as ctx:
+            client.complete(req)
+        self.assertNotIsInstance(ctx.exception, AuthError)
+        self.assertEqual(opener.open.call_count, 0, "岗位不一致不得发请求")
+
+    def test_empty_base_url_raises_auth_error(self) -> None:
+        import os
+
+        from 工作台.接入.models.errors import AuthError
+
+        os.environ["TEST_BASE_URL"] = "   "
+        client = ModelClient(
+            _make_config(),
+            sleeper=MagicMock(),
+            clock=lambda: 0.0,
+        )
+        with self.assertRaises(AuthError):
+            client.complete(_make_request())
+
+    def test_max_retries_zero_does_not_retry_500(self) -> None:
+        opener = MagicMock()
+        err = urllib.error.HTTPError(
+            "https://example.com/v1/chat/completions",
+            500,
+            "Internal Server Error",
+            {},
+            BytesIO(b'{"error":"boom"}'),
+        )
+        opener.open.side_effect = err
+        client = ModelClient(
+            _make_config(max_retries=0),
+            http_opener=lambda: opener,
+            sleeper=MagicMock(),
+            clock=lambda: 0.0,
+        )
+        from 工作台.接入.models.errors import NetworkError
+
+        with self.assertRaises(NetworkError):
+            client.complete(_make_request())
+        self.assertEqual(opener.open.call_count, 1)
 
 
 if __name__ == "__main__":

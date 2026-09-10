@@ -70,6 +70,29 @@ class TavilyMCPClient:
 
         return []
 
+    def search(self, query: str, *, round_idx: int = 0) -> list:
+        from 工作台.接入.search.schemas import SearchSource
+
+        print(f"[调试] Tavily 搜索占位：query={query!r} round_idx={round_idx}")
+        return [
+            SearchSource(
+                id=f"tavily-unavail-r{round_idx}",
+                url="",
+                title="Tavily MCP 未启用（占位，未启动子进程）",
+                publisher=None,
+                published_at=None,
+                accessed_at="",
+                excerpt=query,
+                locator=None,
+                body_path=None,
+                status="fetch_failed",
+                channel="tavily",
+            )
+        ]
+
+    def fetch(self, source):
+        return source
+
     @staticmethod
     def build_child_env(plan: MCPStdioPlan) -> dict[str, str]:
         """按 env_keys 把父进程环境变量名映射到子进程环境变量名。

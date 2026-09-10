@@ -1,7 +1,7 @@
 """内容流水线（三模型流水线）。
 
-仅依赖共享数据类型（``工作台.接入.types``）和 ``配置`` 读取，**不引用**
-``工作台.接入`` 的具体实现；外部依赖通过 Protocol 注入，便于测试时替换 stub。
+阶段模块只依赖 ``工作台.接口`` 的 Protocol；``orchestrator.build_orchestrator``
+在续跑时才组装 ``工作台.接入`` 的真实客户端。测试用 stub 替换。
 """
 
 from .state import (

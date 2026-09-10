@@ -21,6 +21,8 @@ export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 export PYTHONUTF8=1
+ROOT="$(pwd)"
+export PYTHONPATH="${ROOT}${PYTHONPATH:+:$PYTHONPATH}"
 
 # 透传所有参数；菜单当前未读取，但保留扩展空间。
 exec python3 -m 工作台.菜单.app "$@"

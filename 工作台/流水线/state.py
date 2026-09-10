@@ -127,14 +127,25 @@ def resume_after_rerun(
     state: TaskState,
     current_versions: dict[str, str],
 ) -> TaskState:
-    """恢复推进时校验产物哈希；不一致 → ``VersionMixingError``（由调用方抛出）。"""
-    invalid: Iterable[str] = state.rerun_invalidated
+    """恢复时校验**未过期**阶段的产物哈希；不一致 → ``VersionMixingError``。
+
+    ``rerun_invalidated`` 中的阶段允许被新产物替换，不视为混用。
+    """
+    from 工作台.流水线.checkpoint import VersionMixingError
+
+    invalid = set(state.rerun_invalidated)
     bad: list[str] = []
-    for stage in invalid:
-        if stage in state.versions and stage in current_versions:
-            if state.versions[stage] != current_versions[stage]:
-                bad.append(stage)
-    return replace(state, rerun_invalidated=list(invalid))
+    for stage, digest in current_versions.items():
+        if stage in invalid:
+            continue
+        expected = state.versions.get(stage)
+        if expected is None:
+            continue
+        if expected != digest:
+            bad.append(stage)
+    if bad:
+        raise VersionMixingError(f"版本不一致，禁止恢复：{', '.join(bad)}")
+    return replace(state, rerun_invalidated=list(state.rerun_invalidated))
 
 
 __all__ = [

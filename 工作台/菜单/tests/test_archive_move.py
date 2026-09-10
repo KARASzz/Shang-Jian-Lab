@@ -62,6 +62,23 @@ class ArchiveMoveTests(unittest.TestCase):
             self.assertFalse((dst / "运行记录").exists())
             self.assertFalse((dst / ".env").exists())
             self.assertFalse((dst / ".workbuddy").exists())
+            # 源期目录必须消失，避免「进行中」仍列出空壳。
+            self.assertFalse(issue_root.exists())
+
+    def test_archive_carries_top_level_images(self) -> None:
+        from 工作台.菜单.tests._harness import TempRepo
+
+        with TempRepo() as repo:
+            issue_id = "2026-09-09-14-34-16-大模型二三事"
+            issue_root = _seed_issue(repo.root, issue_id)
+            cover = issue_root / "封面图.png"
+            cover.write_bytes(b"PNGDATA")
+            pre = paths.sha256_file(cover)
+            archive.archive_issue(issue_id, confirm_callback=lambda *a, **k: True)
+            moved = repo.archive() / issue_id / "封面图.png"
+            self.assertTrue(moved.exists())
+            self.assertEqual(paths.sha256_file(moved), pre)
+            self.assertFalse(issue_root.exists())
 
     def test_archive_rejects_existing_destination(self) -> None:
         from 工作台.菜单.tests._harness import TempRepo
