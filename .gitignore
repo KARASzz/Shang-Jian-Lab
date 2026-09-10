@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+.mypy_cache/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 凭据与本地配置（绝不入库）
+.env
+.env.*
+*.key
+*.pem
+*.token
+配置/本地.toml
+配置/本期.toml
+配置/凭据/
+
+# 工作台运行产物
+.workbuddy/
+进行中/*/运行记录/运行日志.ndjson
+进行中/*/.tmp_*
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 编辑器
+.idea/
+.vscode/
+*.swp

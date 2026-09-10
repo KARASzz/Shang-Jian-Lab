@@ -1,0 +1,86 @@
+# 配置文件样例 — `配置/默认.toml`
+
+本文件**不含任何凭据**。首次运行会复制为 `配置/本地.toml`，再由用户在本地隐藏输入填写 Base URL、密钥、MCP 启动参数。
+
+```toml
+# ===== 工作台元数据 =====
+[meta]
+schema_version = "1.0"
+issue_lockfile = "配置/本期.toml"   # 当前进行中的期被锁定的岗位快照
+
+# ===== 模型岗位（每个岗位固定一个模型，禁止运行时替换） =====
+[models.planner]
+provider = "openai-compatible"
+base_url_env = "MINIMAX_BASE_URL"
+api_key_env = "MINIMAX_API_KEY"
+request_model = "MiniMax-M3"
+temperature = 0.4
+timeout_seconds = 180
+max_retries = 2
+
+[models.writer]
+provider = "openai-compatible"
+base_url_env = "QWEN_BASE_URL"
+api_key_env = "QWEN_API_KEY"
+request_model = "qwen3.7-plus"
+temperature = 0.7
+timeout_seconds = 180
+max_retries = 2
+
+[models.reviewer]
+provider = "openai-compatible"
+base_url_env = "GLM_BASE_URL"
+api_key_env = "GLM_API_KEY"
+request_model = "glm-5.1"
+temperature = 0.2
+timeout_seconds = 180
+max_retries = 2
+
+# ===== 搜索渠道 =====
+[search.mcp.tavily]
+transport = "stdio"             # stdio | http
+command = "npx"
+args = ["-y", "@tavily/mcp-server"]
+env = { TAVILY_API_KEY = "TAVILY_API_KEY" }
+
+[search.mcp.brave]
+transport = "http"
+url = "http://localhost:8080/mcp"
+api_key_env = "BRAVE_API_KEY"
+
+[search.public.bing]
+endpoint = "https://www.bing.com/search"
+user_agent = "Mozilla/5.0 (workbench; +local)"
+rate_limit_per_minute = 20
+
+# ===== 流水线参数 =====
+[pipeline]
+deep_search_rounds_max = 2
+deep_search_unique_sources_max = 30
+site_depth_max = 2
+revision_rounds_max = 2
+network_retry_max = 2
+auth_failure_abort = true
+
+# ===== 审稿硬约束（仅声明，不在提示词里放松） =====
+[review]
+block_fabricated_citation = true
+block_unsupported_key_fact = true
+block_out_of_scope_sample = true
+block_fake_personal_experience = true
+score_cannot_override_block = true
+
+# ===== 任务状态机 =====
+[task]
+checkpoint_atomic_write = true
+rerun_upstream_invalidates_downstream = true
+forbid_version_mixing = true
+manual_required_after_max_revisions = true
+```
+
+## 字段约定
+
+- `*_env` 字段值是环境变量名，不是真实密钥；运行时从环境读取。
+- 模型岗位在本期开始时由 8 号菜单「配置」冻结到 `配置/本期.toml`；本期运行期间不得换模型。
+- `transport = "stdio"` 必须配套 `command` + `args`；`transport = "http"` 必须配套 `url`，可选 `api_key_env`。
+- 任何禁止项必须保持 `true`；流水线代码遇到 `false` 应直接报错而非继续。
