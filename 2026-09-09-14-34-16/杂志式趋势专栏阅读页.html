@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="zh-CN" data-page-node-id="IuUIlgcWyZ0ya0kyZwaL4m">
+<head data-page-node-id="BIC4CvX1B0bhYf3W2ELRpC">
+<meta charset="utf-8" data-page-node-id="gibKT7RSSfCW5pZ4gHxhy4">
+<meta name="viewport" content="width=device-width,initial-scale=1" data-page-node-id="SYmIKbd49p2nGq73ET6Z85">
+<title>当智能变得廉价：判断力为何重新成为稀缺能力</title>
+<style>
+:root{
+  --paper:#f4efe5;--paper-deep:#ebe3d5;--ink:#171512;--muted:#6d675f;
+  --wine:#711f33;--wine-dark:#4e1524;--gold:#a48545;--gold-soft:#d8c79e;
+  --rule:rgba(23,21,18,.22);--serif:"Songti SC","STSong","SimSun","Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --body-size:18px;--measure:760px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:var(--body-size);line-height:1.92;text-rendering:optimizeLegibility}
+button{font:inherit;color:inherit}
+button:focus-visible{outline:2px solid var(--wine);outline-offset:4px}
+body.large{--body-size:20px;--measure:800px}
+body.focus .section-nav{opacity:.12}
+body.focus .section-nav:hover,body.focus .section-nav:focus-within{opacity:1}
+body.focus .article-shell{max-width:1000px}
+body.focus .margin-note{display:none}
+.utility{position:fixed;z-index:20;right:24px;top:104px;display:flex;gap:8px}
+.utility button,.section-nav button{border:1px solid var(--rule);background:rgba(244,239,229,.9);backdrop-filter:blur(8px);padding:9px 13px;cursor:pointer;letter-spacing:.08em;font-size:12px}
+.utility button:hover,.section-nav button:hover{border-color:var(--wine);color:var(--wine)}
+.masthead{min-height:100svh;border-bottom:1px solid var(--ink);display:grid;grid-template-rows:auto 1fr auto;padding:28px clamp(24px,5vw,72px) 34px;position:relative;overflow:hidden}
+.masthead:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 49.9%,rgba(113,31,51,.08) 50%,transparent 50.1%),linear-gradient(0deg,transparent 49.9%,rgba(164,133,69,.08) 50%,transparent 50.1%);background-size:120px 120px;mask-image:linear-gradient(to bottom,black,transparent 72%);pointer-events:none}
+.topline{display:flex;align-items:flex-start;justify-content:space-between;border-top:4px solid var(--wine);padding-top:12px;position:relative;z-index:1}
+.issue{display:flex;align-items:baseline;gap:18px}.issue strong{font-family:var(--serif);font-size:clamp(38px,7vw,84px);font-weight:500;line-height:.9;color:var(--wine)}
+.issue span,.date{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr);gap:clamp(44px,8vw,120px);align-items:center;position:relative;z-index:1;padding:54px 0}
+.kicker{font-size:12px;letter-spacing:.24em;color:var(--gold);font-weight:700;margin-bottom:22px}
+h1{font-family:var(--serif);font-size:clamp(48px,7.2vw,104px);font-weight:500;letter-spacing:-.055em;line-height:.98;margin:0;max-width:850px}
+h1 em{font-style:normal;color:var(--wine)}
+.subtitle{margin:30px 0 0;max-width:720px;font-family:var(--serif);font-size:clamp(18px,2vw,28px);line-height:1.55;color:#49443e}
+.compass-wrap{display:grid;place-items:center;min-height:480px;position:relative}
+.compass-caption{position:absolute;right:0;bottom:18px;width:180px;border-top:1px solid var(--gold);padding-top:10px;font-size:12px;line-height:1.6;color:var(--muted)}
+.compass{width:min(100%,500px);height:auto;overflow:visible}
+.compass .orbit{transform-origin:250px 250px;animation:turn 32s linear infinite}
+.compass .needle{transform-origin:250px 250px;animation:seek 7s ease-in-out infinite alternate}
+@keyframes turn{to{transform:rotate(360deg)}}
+@keyframes seek{0%{transform:rotate(-8deg)}100%{transform:rotate(11deg)}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}.compass .orbit,.compass .needle{animation:none}}
+.hero-foot{display:grid;grid-template-columns:1fr 1fr;gap:40px;border-top:1px solid var(--rule);padding-top:18px;position:relative;z-index:1}
+.hero-foot p{margin:0;max-width:560px;font-family:var(--serif);font-size:16px;line-height:1.7}.hero-foot .edition{text-align:right;font-size:11px;letter-spacing:.16em;color:var(--muted)}
+.section-nav{position:sticky;top:18px;z-index:10;display:flex;justify-content:center;gap:7px;padding:18px;transition:opacity .25s}
+.section-nav button{background:rgba(244,239,229,.94)}
+.lede{max-width:1120px;margin:100px auto 120px;padding:0 30px;display:grid;grid-template-columns:150px 1fr;gap:clamp(35px,7vw,100px)}
+.lede-label{font-size:11px;letter-spacing:.25em;color:var(--wine);border-top:2px solid var(--wine);padding-top:14px}
+.lede p{font-family:var(--serif);font-size:clamp(24px,3vw,40px);line-height:1.68;margin:0}.lede p:first-letter{float:left;font-size:4.4em;line-height:.78;padding:14px 14px 0 0;color:var(--wine)}
+.data-spread{background:var(--ink);color:var(--paper);padding:100px 24px;margin:0 0 120px}
+.data-inner{max-width:1180px;margin:auto;display:grid;grid-template-columns:.72fr 1.28fr;gap:70px;align-items:center}
+.data-copy .eyebrow,.framework-head .eyebrow,.sources .eyebrow{color:var(--gold-soft);font-size:11px;letter-spacing:.25em}.data-copy h2{font-family:var(--serif);font-weight:500;font-size:clamp(36px,5vw,66px);line-height:1.08;margin:14px 0 24px}.data-copy p{color:#cfc7ba;font-size:15px}.relation-chart{width:100%;height:auto;display:block}
+.article-shell{max-width:1160px;margin:auto;padding:0 28px 130px;display:grid;grid-template-columns:160px minmax(0,var(--measure));gap:70px;justify-content:center;transition:max-width .25s}
+.margin-note{font-size:11px;line-height:1.7;color:var(--muted);letter-spacing:.04em;padding-top:12px;position:relative}.margin-note:before{content:"";display:block;width:36px;border-top:2px solid var(--gold);margin-bottom:14px}.margin-note b{display:block;color:var(--wine);font-size:30px;font-family:var(--serif);font-weight:500;letter-spacing:-.04em}
+.article{min-width:0}.article header{border-top:1px solid var(--ink);padding-top:26px;margin-bottom:76px}.article header .deck{font-family:var(--serif);font-size:26px;line-height:1.55;color:#403b35;margin:0}
+.article h2{font-family:var(--serif);font-size:clamp(32px,4vw,50px);font-weight:500;line-height:1.18;margin:92px 0 26px;letter-spacing:-.03em;position:relative}
+.article h2 .num{position:absolute;right:calc(100% + 28px);top:.25em;font-family:var(--sans);font-size:11px;letter-spacing:.18em;color:var(--wine)}
+.article p{margin:0 0 1.45em}.article strong{color:var(--wine);font-weight:650}
+.pullquote{margin:88px -120px 88px -60px;border-top:1px solid var(--gold);border-bottom:1px solid var(--gold);padding:40px 55px;font-family:var(--serif);font-size:clamp(28px,4vw,46px);line-height:1.4;color:var(--wine)}
+.pullquote small{display:block;margin-top:16px;font:11px/1.5 var(--sans);letter-spacing:.18em;color:var(--muted)}
+.framework{background:var(--wine);color:#fffaf0;padding:110px 28px;margin:0 0 120px}
+.framework-inner{max-width:1180px;margin:auto}.framework-head{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:end;border-bottom:1px solid rgba(255,255,255,.35);padding-bottom:38px}.framework-head h2{font-family:var(--serif);font-size:clamp(44px,6vw,78px);font-weight:500;line-height:1;margin:12px 0 0}.framework-head p{margin:0;color:#eadde0}
+.quadrants{display:grid;grid-template-columns:1fr 1fr}.quadrant{min-height:330px;padding:42px 46px;border-bottom:1px solid rgba(255,255,255,.26);position:relative}.quadrant:nth-child(odd){border-right:1px solid rgba(255,255,255,.26)}.quadrant .qno{font-family:var(--serif);font-size:70px;line-height:1;color:var(--gold-soft);opacity:.82}.quadrant h3{font-family:var(--serif);font-weight:500;font-size:31px;margin:18px 0 14px}.quadrant p{font-size:15px;line-height:1.75;color:#eadde0;margin:0;max-width:430px}.quadrant .verb{position:absolute;right:36px;top:38px;font-size:10px;letter-spacing:.23em;writing-mode:vertical-rl;color:var(--gold-soft)}
+.quotes{padding:120px 28px;background:var(--paper-deep)}.quotes-inner{max-width:1120px;margin:auto}.quotes h2,.series h2,.sources h2{font-family:var(--serif);font-size:clamp(38px,5vw,64px);font-weight:500;margin:0 0 54px}.quote-grid{display:grid;grid-template-columns:repeat(2,1fr);border-top:1px solid var(--ink)}
+.quote{padding:38px 36px 40px 0;border-bottom:1px solid var(--rule);font-family:var(--serif);font-size:24px;line-height:1.52}.quote:nth-child(odd){border-right:1px solid var(--rule)}.quote:nth-child(even){padding-left:36px}.quote small{display:block;font:11px/1.5 var(--sans);letter-spacing:.16em;color:var(--wine);margin-top:18px}
+.series{max-width:1120px;margin:0 auto;padding:120px 28px}.series-item{display:grid;grid-template-columns:90px 1fr;gap:36px;border-top:1px solid var(--ink);padding:34px 0}.series-item:last-child{border-bottom:1px solid var(--ink)}.series-item .serial{font-family:var(--serif);font-size:34px;color:var(--gold)}.series-item h3{font-family:var(--serif);font-size:28px;line-height:1.35;margin:0 0 8px}.series-item p{margin:0;color:var(--muted)}
+.sources{background:var(--ink);color:var(--paper);padding:100px 28px}.sources-inner{max-width:1120px;margin:auto}.source{display:grid;grid-template-columns:42px 1fr;gap:24px;border-top:1px solid rgba(255,255,255,.22);padding:25px 0}.source .sn{color:var(--gold-soft);font-family:var(--serif);font-size:24px}.source h3{font-size:15px;margin:0 0 7px}.source p{font-size:12px;line-height:1.65;color:#c9c1b4;margin:3px 0;overflow-wrap:anywhere}.caveat{margin-top:50px;border:1px solid rgba(216,199,158,.5);padding:30px 34px;color:#d8d0c3;font-size:13px}.caveat strong{color:var(--gold-soft)}
+footer{background:var(--wine-dark);color:#e7dcd0;padding:32px 28px;display:flex;justify-content:space-between;font-size:11px;letter-spacing:.12em}
+@media(max-height:700px) and (min-width:901px){.masthead{min-height:700px}.hero-grid{padding:28px 0;gap:50px}.compass-wrap{min-height:360px}.compass{width:min(100%,390px)}h1{font-size:clamp(48px,6vw,76px)}.subtitle{margin-top:18px;font-size:21px}}
+@media(max-width:900px){.utility{position:absolute;right:18px;top:18px}.topline{padding-top:70px}.hero-grid{grid-template-columns:1fr;padding-top:70px}.compass-wrap{min-height:360px}.compass{width:min(390px,100%)}.hero-foot{grid-template-columns:1fr}.hero-foot .edition{text-align:left}.section-nav{justify-content:flex-start;overflow:auto}.lede{grid-template-columns:1fr}.data-inner{grid-template-columns:1fr}.article-shell{grid-template-columns:1fr}.margin-note{display:none}.pullquote{margin:70px 0;padding:34px 0}.framework-head{grid-template-columns:1fr}.quadrants{grid-template-columns:1fr}.quadrant:nth-child(odd){border-right:0}.quote-grid{grid-template-columns:1fr}.quote:nth-child(odd){border-right:0}.quote:nth-child(even){padding-left:0}}
+@media(max-width:560px){body{--body-size:17px}.masthead{padding-left:20px;padding-right:20px}.issue strong{font-size:48px}.hero-grid{gap:10px}h1{font-size:49px}.subtitle{font-size:20px}.compass-wrap{min-height:300px}.compass-caption{display:none}.section-nav{padding:12px}.section-nav button{white-space:nowrap;padding:8px 10px}.lede,.article-shell,.framework,.quotes,.series,.sources{padding-left:20px;padding-right:20px}.lede{margin:72px auto 80px}.lede p{font-size:24px}.data-spread{padding:72px 16px}.framework{padding-top:76px}.quadrant{padding:34px 0;min-height:0}.quadrant .verb{right:0}.quote{font-size:21px}.series-item{grid-template-columns:54px 1fr;gap:18px}.series-item h3{font-size:23px}footer{display:block;line-height:2}}
+@media print{.utility,.section-nav{display:none}.masthead{min-height:auto}.compass .orbit,.compass .needle{animation:none}.data-spread,.framework,.sources{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+</style>
+</head>
+<body data-page-node-id="cO5EEuIoyfzVAyQXcP4EWu">
+<div class="utility" aria-label="阅读设置" data-page-node-id="iC5ZCuDwOFrtkmLx5DgSMN">
+  <button type="button" id="focusMode" data-page-node-id="VhC0fj6FbfAR3uGzoqy8CS">阅读模式</button>
+  <button type="button" id="fontSize" data-page-node-id="UXTNWtz9rMReXuh18sMvVk">增大字号</button>
+</div>
+<header class="masthead" id="top" data-page-node-id="6ZPUg8MBYSy5ZGlZad1HHQ">
+  <div class="topline" data-page-node-id="9HlZcA58EVm36giTDhleAY">
+    <div class="issue" data-page-node-id="Xh3EQkJxJ3r2mBzCPExLLo"><strong data-page-node-id="mPj8gS3BA8ROzQErYhbHHY">ISSUE 01</strong><span data-page-node-id="xOM88PbVhFTkB7VfQLZP0R">趋势议题深度专栏</span></div>
+    <div class="date" data-page-node-id="LcZT7swtv0W5UfEC908wpV">2026 / 09<br data-page-node-id="z7DXTfAzFqWXvCvIGqEvqz">Judgment Edition</div>
+  </div>
+  <div class="hero-grid" data-page-node-id="SLOybL5A6kHh5Cwn6w9LH3">
+    <div data-page-node-id="zWlejjB6XZLmEGaZpA58Xv">
+      <div class="kicker" data-page-node-id="2XctivVDXaX3alfaXVjNvR">THE PRICE OF JUDGMENT</div>
+      <h1 data-page-node-id="ZRNzKV4En29nfOMlvawA1V">当智能变得廉价：<em data-page-node-id="ihLIhNFdTQfX7IEyPGxSwK">判断力</em>为何重新成为稀缺能力</h1>
+      <p class="subtitle" data-page-node-id="u4fV4ez3CAgp4VnPARpViY">当生成与执行的边际成本持续下降，知识工作的价值正在迁向定义问题、选择证据、设定边界与承担后果。</p>
+    </div>
+    <div class="compass-wrap" aria-label="抽象判断罗盘" data-page-node-id="oYWYmvrloFANMvY7WnEepS">
+      <svg class="compass" viewBox="0 0 500 500" role="img" aria-labelledby="compassTitle compassDesc" data-page-node-id="iRC6f7YqgHEMW7DeZ0Caau">
+        <title id="compassTitle">判断罗盘</title><desc id="compassDesc" data-page-node-id="31ZQDgFSH8znQPUWtvjizH">由问题、证据、边界与后果构成的判断坐标</desc>
+        <circle cx="250" cy="250" r="198" fill="none" stroke="#a48545" stroke-width="1" data-page-node-id="VLvbjrOhycAio1Hu0EwJS9"/>
+        <circle cx="250" cy="250" r="150" fill="none" stroke="#711f33" stroke-width="1.5" stroke-dasharray="2 9" data-page-node-id="tmO5Q9cSGiaX3a10ILFq0o"/>
+        <g class="orbit" fill="none" stroke="#171512" stroke-width="1" data-page-node-id="fSlZ4D16S6N3WTMv8yqu0T">
+          <ellipse cx="250" cy="250" rx="205" ry="72" transform="rotate(28 250 250)" data-page-node-id="IMNU2tXu45EppzrMCDXOHP"/>
+          <ellipse cx="250" cy="250" rx="205" ry="72" transform="rotate(118 250 250)" data-page-node-id="Apuq2LImiMjGXkzv1RyF41"/>
+        </g>
+        <line x1="250" y1="28" x2="250" y2="472" stroke="#171512" stroke-width=".7" data-page-node-id="DmgCcCOPHdU4FDKMCfZvex"/>
+        <line x1="28" y1="250" x2="472" y2="250" stroke="#171512" stroke-width=".7" data-page-node-id="pP74BYWJ9phFhbNAfaKMEr"/>
+        <g class="needle" data-page-node-id="2sF0xWHGoYuyVKZtKDtKUW">
+          <path d="M250 72 L266 250 L250 276 L234 250 Z" fill="#711f33" data-page-node-id="42mU8ibUv0xg2D7sBjRQlR"/>
+          <path d="M250 428 L234 250 L250 224 L266 250 Z" fill="#a48545" opacity=".72" data-page-node-id="RDPZ6ctGTcpxjD5V14QPJz"/>
+        </g>
+        <circle cx="250" cy="250" r="28" fill="#f4efe5" stroke="#171512" stroke-width="1.5" data-page-node-id="eJjPmDTfjOwZguRQyYjHel"/>
+        <circle cx="250" cy="250" r="5" fill="#711f33" data-page-node-id="7GCKwKWV6YVrF2uPyLkZwz"/>
+        <g fill="#171512" font-family="Songti SC, STSong, SimSun, serif" font-size="14" text-anchor="middle" data-page-node-id="IcsDkGva0kOU2uFzCd6FNc">
+          <text x="250" y="18" data-page-node-id="ROUv9zyOaU7Nhc7z9dp21Y">定义问题</text><text x="250" y="496" data-page-node-id="cIeZBxQWAmETEspRSEjmPs">承担后果</text>
+          <text x="35" y="242" transform="rotate(-90 35 242)" data-page-node-id="IK94yiGb7FBnozJWgFweFu">选择证据</text><text x="465" y="242" transform="rotate(90 465 242)" data-page-node-id="diY0yOe59mkgfYA0EYjodt">设定边界</text>
+        </g>
+      </svg>
+      <div class="compass-caption" data-page-node-id="bXhg6vRuTwVp9lDL4vh291">罗盘不替你决定方向。它只迫使方向、依据、边界与责任同时出现。</div>
+    </div>
+  </div>
+  <div class="hero-foot" data-page-node-id="qqL11kscwrN1gD5DiCCIIa">
+    <p data-page-node-id="kQXws5QFcFzd2QC4aqcVFO">在 AI 让生成与执行迅速降价的拐点上，知识工作的价值重心正从“做得更多”迁移到“决定什么值得做，并为结果负责”。</p>
+    <div class="edition" data-page-node-id="RKGF5ZgtgdWc1KYTFAw2o9">LONGFORM · ORGANIZATION · AI · GROWTH</div>
+  </div>
+</header>
+<nav class="section-nav" aria-label="章节导航" data-page-node-id="R2YESa9nucBjPpEWf2GUzp">
+  <button type="button" data-target="lede" data-page-node-id="SwyxI8s6Eq8dBI0LTo7PJL">导语</button>
+  <button type="button" data-target="evidence" data-page-node-id="eGNZJWcrPpdHS69aYP7IJ9">三组证据</button>
+  <button type="button" data-target="framework" data-page-node-id="aupkhhfSwoRQRIwuDFzdUJ">四种判断力</button>
+  <button type="button" data-target="boundary" data-page-node-id="7kgWb5uPvSissp7vZwB2TW">边界与行动</button>
+  <button type="button" data-target="quotes" data-page-node-id="fbdfgwof3ArV3RdIQ27Ct8">重点引文</button>
+  <button type="button" data-target="sources" data-page-node-id="BXCGMKiXTSLuVupSHGWJZ6">来源</button>
+</nav>
+<main data-page-node-id="yKcmIPAQXwsz6A1bL71pE1">
+<section class="lede" id="lede" data-page-node-id="2OcpaNTRTDVyZn8Jtzq0DF">
+  <div class="lede-label" data-page-node-id="gxDFHBJhT9mWl8wMbvvGxz">EDITOR'S NOTE<br data-page-node-id="kGKarIZFxXUlCOTtp9G5PT">最佳导语</div>
+  <p data-page-node-id="b0QGq5OmyklAvwUL6mEjMH">清晨九点，一位内容负责人打开协作软件：智能体已经整理完昨夜的行业信息，生成三套 campaign 方案，补齐竞品表格，还为每套方案写了风险提示。过去需要团队两天完成的东西，如今在第一杯咖啡冷却前就已铺满屏幕。问题却没有减少，反而变得更尖锐：哪个趋势只是噪声？哪条证据足以支撑预算？品牌应该追上热点，还是保留沉默？如果自动生成的建议造成误导，谁来解释，又由谁承担损失？我们正在进入一种新的丰裕：可调用的“智能”更便宜、更快速，也更容易嵌入流程。微软、世界经济论坛、斯坦福 HAI 与 Anthropic 的公开资料从不同侧面描绘了同一转折——组织在加速采用 AI 与智能体，任务委派正在增加，技能结构则快速变化。但丰裕不会自动带来更好的决定。它只会让更多选项、更高速度和更大影响同时抵达。于是，知识工作的稀缺性开始迁移：从生成答案，转向决定问题；从执行指令，转向校验证据；从追求无边界效率，转向划定不可外包的责任。</p>
+</section>
+<section class="data-spread" id="evidence" data-page-node-id="h6ySwDs0qudoVETIq8mEUw">
+  <div class="data-inner" data-page-node-id="79bfu7JE5DieNI5BJkhN4n">
+    <div class="data-copy" data-page-node-id="evdf45x1GEXMywGxr65gOM">
+      <div class="eyebrow" data-page-node-id="rg8O4PoBnZ0qPhpxA7L3GM">THE DOUBLE MOVEMENT</div>
+      <h2 data-page-node-id="qvK7YTjLEBatwDxB2iaE7D">供给向下，<br data-page-node-id="OcFXwr4JebzQGwpd4H5EeH">责任向上</h2>
+      <p data-page-node-id="YcQ1jC3C13hFpkDYrn5km5">推理成本下降、组织采用增长、自动化委派加速。与此同时，问题选择、证据质量、风险边界与结果责任变得更集中。图示表达趋势关系，不代表四组指标处于同一量纲。</p>
+    </div>
+    <svg class="relation-chart" viewBox="0 0 720 460" role="img" aria-labelledby="chartTitle chartDesc" data-page-node-id="jdIAO57ZOXJg5HQLMWw4Mq">
+      <title id="chartTitle">智能供给增加与判断责任增加的双向关系</title><desc id="chartDesc" data-page-node-id="8zLv5GumvawQOcdVIvtIef">左侧显示推理成本下降与采用率上升，右侧显示定义、证据、边界和后果责任增加</desc>
+      <rect x="1" y="1" width="718" height="458" fill="none" stroke="#5d5850" data-page-node-id="YTjYBmErDuAWtzHQ6wUi7p"/>
+      <line x1="360" y1="58" x2="360" y2="402" stroke="#756e64" stroke-dasharray="3 8" data-page-node-id="NCPf6eRYakX45BoBMrPy8H"/>
+      <text x="62" y="56" fill="#d8c79e" font-size="12" letter-spacing="3" data-page-node-id="AafmAZEDSP92AhAnavRP2O">智能供给增加</text>
+      <text x="658" y="56" fill="#d8c79e" font-size="12" text-anchor="end" letter-spacing="3" data-page-node-id="TkyQWagBhTlhbK8vHOEemy">判断责任增加</text>
+      <polyline points="70,328 150,288 230,238 310,128" fill="none" stroke="#d8c79e" stroke-width="3" data-page-node-id="BHcE9Om1Sf1hIvpH1RbDAH"/>
+      <polyline points="410,330 488,276 566,204 650,108" fill="none" stroke="#8f3149" stroke-width="3" data-page-node-id="HxSgs5EyHfXTJ4kaLiqFCO"/>
+      <g fill="#d8c79e" data-page-node-id="OVMrWHRVuiR7n6GKRm6iE0"><circle cx="70" cy="328" r="5" data-page-node-id="MOrzwwng8yGYFkPDh3wFdf"/><circle cx="150" cy="288" r="5" data-page-node-id="Uxi1Ge15k7XvbMOAWCAdIh"/><circle cx="230" cy="238" r="5" data-page-node-id="BDBpLFiTEkFXFRTRHcNv4K"/><circle cx="310" cy="128" r="7" data-page-node-id="RqyhEEaIiHcEGwKeX65mYL"/></g>
+      <g fill="#8f3149" data-page-node-id="IHoYSN7y4t8l6JQqqFksLV"><circle cx="410" cy="330" r="5" data-page-node-id="xXsEvawlhG7ShElHYw64fs"/><circle cx="488" cy="276" r="5" data-page-node-id="6L0YPEFSOn1xg2nGZr8JP3"/><circle cx="566" cy="204" r="5" data-page-node-id="1VfeIOcmvwQp2nqpW7feHE"/><circle cx="650" cy="108" r="7" data-page-node-id="iutsG9aPHty94GHjTrbmy3"/></g>
+      <path d="M310 128 L330 140 L307 150" fill="none" stroke="#d8c79e" stroke-width="2" data-page-node-id="lJnWsTd72xNA9pLTz6ilCn"/>
+      <path d="M650 108 L628 110 L641 130" fill="none" stroke="#8f3149" stroke-width="2" data-page-node-id="gUhwSjtatTHAhFKQPEWKsF"/>
+      <text x="70" y="365" fill="#f4efe5" font-size="18" data-page-node-id="eXZKQfxLulYuCij88UZAEw">成本下降</text><text x="70" y="389" fill="#9e978c" font-size="12" data-page-node-id="wzpgJxfGAFsLFDe1EU2UCG">GPT-3.5 水平推理成本约18个月降逾280倍</text>
+      <text x="650" y="365" fill="#f4efe5" font-size="18" text-anchor="end" data-page-node-id="k91Tlwlb73YdqlghFbUF1t">责任聚拢</text><text x="650" y="389" fill="#9e978c" font-size="12" text-anchor="end" data-page-node-id="OqDZorSinj3ii4CVoZOaOP">问题 · 证据 · 边界 · 后果</text>
+      <circle cx="360" cy="230" r="64" fill="#171512" stroke="#a48545" stroke-width="1.5" data-page-node-id="GTA7evGumkRETOrgkMuai9"/>
+      <text x="360" y="221" fill="#f4efe5" font-size="15" text-anchor="middle" data-page-node-id="t3iJF1Ob1jJ0YzhbUOuQU0">执行变便宜</text><text x="360" y="247" fill="#d8c79e" font-size="15" text-anchor="middle" data-page-node-id="kfHKHUPHvZiMoiEANZIhft">决定变昂贵</text>
+    </svg>
+  </div>
+</section>
+<div class="article-shell" data-page-node-id="SmDW2KlFUwxW0HhVmOveAV">
+  <aside class="margin-note" data-page-node-id="oF4kw3AvJ8g6xNus5RTEtK"><b data-page-node-id="2fZ9EIpdWZRNY3JXPdwLmE">3</b>组证据<br data-page-node-id="1l6WGSioIvxfmS49Q97WEX">从技术供给、组织委派与岗位技能三个层面确认同一转折。</aside>
+  <article class="article" data-page-node-id="5n1z4yNuDui1yUFrGAREcc">
+    <header data-page-node-id="9ZyQbynX3948eQXoNtYtjT"><p class="deck" data-page-node-id="u88afDNG9r2Ehhof5kpQro">这不是对“人类不可替代”的浪漫辩护，而是一场关于责任如何重新分配的现实讨论。</p></header>
+    <h2 data-page-node-id="3f0gfDIVI5YdXxzeZMYpPW"><span class="num" data-page-node-id="2DocB99ryc3cJy4Q55DUta">01 / SCENE</span>一杯咖啡尚未冷却</h2>
+    <p data-page-node-id="zZ9BnHpe4P6hAnWFsDSN4H">清晨九点，一位内容团队负责人打开工作台。智能体已整理完昨夜动态，列出十个选题，生成三套 campaign 方案。过去数人两天完成的初稿，如今在第一杯咖啡冷却前就铺满屏幕。</p>
+    <p data-page-node-id="t2xxoyAtSnGl2Vjj6Vebaa">她却没有更轻松：哪个趋势是真变化，哪个只是噪声？哪套方案值得占用品牌信用？二手数据能否进入正式提案？建议若伤害用户信任，谁来解释？</p>
+    <p data-page-node-id="ba4wQoDHaqh0Cg3Fi2I3U1">AI 正在压低文本、图像、代码与流程执行的成本，却没有消除难题，只把它推向两端：上游是“为何而做”，下游是“由谁负责”。当生成成为基础设施，判断便从隐性素养变成显性生产资料。</p>
+
+    <h2 data-page-node-id="uVFWMUE9hvTPQkJQbxhYvC"><span class="num" data-page-node-id="0HL3dulCOHN3Pl74Tocusu">02 / EVIDENCE</span>智能供给正在快速扩张</h2>
+    <p data-page-node-id="SQ0DWHDqEf199OGgYaqSzG">斯坦福 HAI 的《2025 AI Index Report》给出了清晰的供给曲线。2024 年，<strong data-page-node-id="052UXwYagmjvEuVzhdx7ou">78%</strong> 的受访组织报告使用 AI，高于 2023 年的 <strong data-page-node-id="6iAdZL8Oia7rZLEZsTvFKE">55%</strong>；全球生成式 AI 私人投资达到 <strong data-page-node-id="MyjMVR33dxJFoXB4fQJjiu">339 亿美元</strong>，同比增长 <strong data-page-node-id="bkPXSCGObSL40FoJM9r64G">18.7%</strong>。在 MMLU 上达到 GPT-3.5 水平的系统，推理成本从 2022 年 11 月到 2024 年 10 月下降逾 <strong data-page-node-id="0exIcPbyWI5kFCkE6gTwZU">280 倍</strong>。</p>
+    <p data-page-node-id="5EawOtvlUrBgBfB6bJ7AYD">这不只是“同样工作更便宜”。曾经不值得调用专业能力的小任务开始被机器接手，一次分析可以并行生成十个版本。智能由稀缺资源变成可随取随用的投入品，组织自然会生产更多答案。</p>
+    <p data-page-node-id="BYidMC2O5fJe07gZKUh6QJ">但短时能力不能外推为全面自治。在 RE-Bench 特定复杂任务评测中，两小时时间预算下，顶级 AI 智能体得分约为人类专家四倍；到 32 小时，人类表现约为 AI 两倍。机器在边界清楚、反馈较快的短程任务上极强，长周期工作仍要求持续校准、异常处理与目标重估。</p>
+
+    <h2 data-page-node-id="KaNVwQ6TcHpq1MJMeWFbCl"><span class="num" data-page-node-id="0kx012S3JO9NC5lpC0QBxQ">03 / EVIDENCE</span>组织正在把执行权交给机器</h2>
+    <p data-page-node-id="8fz7LHQTZt3keRLHxC4GWd">微软《2025 Work Trend Index》调查了 31 国 31,000 名知识工作者。<strong data-page-node-id="mGiY4CUwLS2GfAQmA2vdYt">82%</strong> 的领导者认为 2025 年是重想战略与运营的关键年；<strong data-page-node-id="d3KwTFUwvyMMqdfoNfv6Jk">81%</strong> 预计未来 12 至 18 个月会适度或广泛整合智能体。53% 的领导者要求提高生产力，但 80% 的全球受访劳动力表示缺少时间或精力；工作时段平均每两分钟就有会议、邮件或消息打断。</p>
+    <p data-page-node-id="Httf5Y5m9PRguTEA0gu5xg">智能体因此被当作“数字劳动力”。报告定义的“前沿企业”中，71% 员工认为公司蓬勃发展，全球总体样本为 37%。这是相关性，不是简单因果；先行者往往也有更成熟的部署、投资与管理条件。</p>
+    <p data-page-node-id="IOvCMIk1vvxvyAPB0Dc9xr">Anthropic 2025 年 9 月的 Economic Index 显示，其 Claude.ai 抽样对话中，指令式自动化占比从 2024 年底的 27% 升至 2025 年 8 月的 39%；其第一方企业 API 样本中，77% 的记录呈自动化模式，而 Claude.ai 样本接近对半。这说明委派在该平台加速，尤其是 API 流程；它不能泛化为全部职场。</p>
+
+    <h2 data-page-node-id="n5GYqbfExeqnGySklBDHEF"><span class="num" data-page-node-id="sBPymEobMYm8dkKMZESidy">04 / EVIDENCE</span>岗位增长与技能失效同时发生</h2>
+    <p data-page-node-id="clCLkyBbiETWVa74c8cPUP">世界经济论坛《Future of Jobs Report 2025》预计，到 2030 年将新增 1.70 亿个岗位、替代 9,200 万个，净增 7,800 万个。这既不是“工作终结”，也不是“人人受益”：新增与消失分布在不同产业、地区和人群，转换成本不会被净增长抹平。</p>
+    <p data-page-node-id="Uz7AeIxDGk3CokgZL0xLBt">报告预计，39% 的现有技能将改变或过时；63% 的雇主把技能缺口视为转型主要障碍。与此同时，分析思维、韧性、领导力和协作仍是关键能力。真正的断层未必只在“会不会用 AI”之间，更在于能否把廉价智能组织成可靠结果。</p>
+
+    <div class="pullquote" data-page-node-id="NqVIfPk9alL4zqCE1Nh20V">答案越便宜，决定哪一个答案进入现实的人越昂贵。<small data-page-node-id="DjIXFsrfmuFwnhV7bGR78t">本刊提炼</small></div>
+
+    <h2 data-page-node-id="v1tckCCdILD4FkyhssU8P4"><span class="num" data-page-node-id="KhamKExxWiS2S4YEDsSlAC">05 / THESIS</span>从能力溢价，转向责任溢价</h2>
+    <p data-page-node-id="H1ERXBxltRaSmwKKDKLtr7">丰裕智能时代会奖励责任承载。“智能变得廉价”并非说智慧、经验或专家廉价，而是标准化生成与部分执行的边际成本快速下降。候选答案越多，答案本身越容易贬值；能决定哪一个进入现实，并理解其代价的人，价值反而上升。</p>
+    <p data-page-node-id="whq1f3D8lhR7XJHRmcZCNK">判断力不是朦胧的“品味”或资历带来的否决权，而是一条可检验的责任链：定义问题、选择证据、设定边界、承担后果。四者缺一，判断就容易退化为偏好、直觉或权力。</p>
+  </article>
+</div>
+<section class="framework" id="framework" data-page-node-id="qCaWHeLhu75EK11rtoXtqe">
+  <div class="framework-inner" data-page-node-id="KyZ5Xs8GzL0EzQXGhJvsgm">
+    <div class="framework-head" data-page-node-id="NzJIXa0CLFXfnLo7ElcKYv">
+      <div data-page-node-id="E2Bq5jXGyvr9Hr9qSMtHJY"><div class="eyebrow" data-page-node-id="jmc8bY5QIbZyLzmSx9YwFG">A PRACTICAL FRAMEWORK</div><h2 data-page-node-id="Yt4U8TANdLFSiiMneOixUF">四种判断力</h2></div>
+      <p data-page-node-id="uBzraTQK1lqHgh2Zo593Vn">不是抽象的“人类优势”，而是从命题到结果的一条责任链。每一环都可以被工具辅助，但不能让责任归属悬空。</p>
+    </div>
+    <div class="quadrants" data-page-node-id="S2FRpXpEiz368YVABBotvN">
+      <section class="quadrant" data-page-node-id="5FeDc5CDyql0FJsM0RvjHx"><div class="qno" data-page-node-id="TnaPsM3WG89fAa89trrP8u">壹</div><div class="verb" data-page-node-id="S0IEFOCev8qRwuWM1cJOOT">FRAME</div><h3 data-page-node-id="qR1PzV45CFywIFHzwfZpew">定义问题</h3><p data-page-node-id="OmsqCYgC2H3kO4K5k20btc">AI 擅长在给定目标下搜索路径，却不会天然知道目标是否值得。先问真正希望改变的结果是什么、谁受益、谁承担成本、什么指标只是代理变量。好问题暴露取舍，而不是掩盖取舍。</p></section>
+      <section class="quadrant" data-page-node-id="hfsn6NMpe1KjviYbCwpeeT"><div class="qno" data-page-node-id="2f9zwhG8WBLAFVn86nEpYs">贰</div><div class="verb" data-page-node-id="6FjlDiqdHSBUNNtww7kzO7">VERIFY</div><h3 data-page-node-id="HsUGrXy8u3iXfODR1QdPPZ">选择证据</h3><p data-page-node-id="C8VoOdsS8MdVdEUwLXl7H5">恢复证据之间的差异：原始数据还是二手摘要，随机样本还是平台样本，相关性还是因果性，短期基准还是长期表现。预先说明什么证据会让我们改变主意。</p></section>
+      <section class="quadrant" data-page-node-id="WLswrAkCzDxaJtWON7TrO8"><div class="qno" data-page-node-id="5NqCt4eemwF09GNpc2wckb">叁</div><div class="verb" data-page-node-id="5puv4o90k6C9pZ4r99ZDvl">BOUND</div><h3 data-page-node-id="FAWWPqe6FMlNc85tzaqmgy">设定边界</h3><p data-page-node-id="BIJUPtHsuQ8FwMDIlc8BlN">明确什么信息不可输入、什么输出不可直接发布、何种异常必须升级、谁有权暂停系统。边界不是不信任技术，而是诚实估计影响范围。</p></section>
+      <section class="quadrant" data-page-node-id="kMGz3wd19e3Y9wgod6ktai"><div class="qno" data-page-node-id="gWVsTv7N04Mq0Y2VmhYsqg">肆</div><div class="verb" data-page-node-id="q6S7oYp3CLUbG2ab7HcX7C">OWN</div><h3 data-page-node-id="yZYIMU1XSDkmt8JzG1U3NQ">承担后果</h3><p data-page-node-id="x7giQxicxvE9E3YcUvmmHi">委派任务不等于转移责任。保留决策记录，说明采信了哪些证据、忽略了哪些风险，并在结果不佳时修正机制，而不是把错误归因于“模型就是这样”。</p></section>
+    </div>
+  </div>
+</section>
+<div class="article-shell" id="boundary" data-page-node-id="MZ4yq9PbdWqGBlVraTFaGh">
+  <aside class="margin-note" data-page-node-id="ZPIIoneXibvyq0UeyMcVRQ"><b data-page-node-id="GdxTpduLSY7spUS4Raz8Hr">2</b>条边界<br data-page-node-id="dyJGzDVOwfUF49g2DqF4KG">判断会被辅助甚至自动化，但问责不能悬空；效率也不能遮蔽迁移成本。</aside>
+  <article class="article" data-page-node-id="uhmL2Tb9VCj5vgPufvibe7">
+    <h2 data-page-node-id="Lly47zkkoRtDtSSXLrCD3l"><span class="num" data-page-node-id="9ATGI5UC7SBma8RnmLw7mx">06 / LIMITS</span>判断力并非人类的永久特权</h2>
+    <p data-page-node-id="INpHJcAk0J1lqrJOJxQ1Jl">一种反对意见是：今天的判断力，明天也可能被模型学会。确实，定义问题可被辅助，证据可被评分，边界可被编码，后果也能被模拟。把判断神秘化为“人类独有”，只是技术史上反复失守的自我安慰。</p>
+    <p data-page-node-id="AG9J20WtPN3atIu4FNoYA3">更准确地说，判断力是必须被明确配置的治理职能。它可由人、模型和制度共同完成，但责任不能悬空；部分判断被工具化时，新规模、新速度和新外部性又会制造更高层级的判断任务。</p>
+    <p data-page-node-id="w8BtDRET4i05ZIanTVopZv">便宜智能既可能扩大能力，也可能扩大噪声、偏见与权力差距。前沿企业是先行者样本，岗位净增长也不保证每个被替代者顺利迁移。若不讨论培训、转岗与申诉，判断力就会沦为精英修辞。</p>
+
+    <h2 data-page-node-id="mgCPKLx3l6KZGjrKJLDdXq"><span class="num" data-page-node-id="e2O6LGLl4cZ0wgPGUyfhTA">07 / ACTION</span>把判断嵌入习惯与流程</h2>
+    <p data-page-node-id="3pQIrFlf8iqETlmsXdYUwr"><strong data-page-node-id="qmjwPpyl1JywxWFMlMv7sX">个人：</strong>从一张“判断记录”开始。每次让 AI 参与重要任务，留下四行：解决什么问题；采信哪些证据；哪些边界不可突破；结果出错时如何解释和修正。它比收集提示词更慢，却能形成可迁移的能力。</p>
+    <p data-page-node-id="p3B6X5QUvl49TbMLdKsz3E"><strong data-page-node-id="mL51XvvTskGPRFslgmaSCW">内容团队：</strong>把评审从“成品好不好”前移到“命题是否成立”：先审问题与证据，再批量生成；发布前明确事实、版权、隐私和品牌边界；复盘时同时记录产量、返工与信任损耗。</p>
+    <p data-page-node-id="GvFCOdWx2kDEHfcIGqO2mj"><strong data-page-node-id="GkxSfrYyRFYyofk5TJMG5b">组织：</strong>像管理预算一样管理自动化权限。低风险、可逆工作允许自动执行；中风险任务要求抽检与留痕；高风险、不可逆事项保留具名负责人。衡量 AI 项目时，除节省工时外，还要看决策周期、错误成本、异常发现速度和责任清晰度。</p>
+    <p data-page-node-id="NzyxQEnkDOJdE1RDI0TOGx">领导者最重要的工作，也许不是催促团队“多用 AI”，而是给判断留下制度空间：允许员工提出反例，奖励及时停止错误流程的人，让不确定性能够被上报，而不是被流畅的输出掩盖。</p>
+
+    <h2 data-page-node-id="55X0J3DNKdTNfkmcsW29TS"><span class="num" data-page-node-id="EUyfMTvMz1f6KzQvEB8REO">08 / CODA</span>世界更快，选择更重</h2>
+    <p data-page-node-id="Ux8VuqgLGNK9xmfinOr1z7">未来的工作台上，草稿更多，方案更快，执行更自动。我们不再因缺少答案而停滞，却可能因答案过多而迷失。那时，专业不只在于生产什么，也在于拒绝什么、依据什么、守住什么，以及愿意为哪个决定留下名字。</p>
+    <p data-page-node-id="nvX9Kbxk98KTFAGMUlA2Nz">智能价格可以下降，责任却不会消失。它只会从机器无法承担的地方，重新回到人和组织面前。真正稀缺的，不是最后一次点击“生成”的能力，而是在万千可生成之物中，仍能辨认什么值得成为现实。</p>
+  </article>
+</div>
+<section class="quotes" id="quotes" data-page-node-id="7c6cVl0tqXQzxOi2DgN80K">
+  <div class="quotes-inner" data-page-node-id="CFyq1ZnjVbCg4oNAXkhEsU">
+    <h2 data-page-node-id="JMB0Ua3JU3YZJttb6MZZ0X">可被带走的八句话</h2>
+    <div class="quote-grid" data-page-node-id="zT7H8mo9sYC9eB4IHVyXH5">
+      <div class="quote" data-page-node-id="pFwYixJrHqYMhWhFJma9Yn">“当生成从稀缺品变成基础设施，判断便从隐性素养变成显性生产资料。”<small data-page-node-id="qlclUX51RYKCdr1z3QE8Hc">本刊提炼</small></div>
+      <div class="quote" data-page-node-id="Ce4LlbQ7AyRQnX7KHOYagV">“AI 把难题向两端推移：上游是为何而做，下游是由谁负责。”<small data-page-node-id="Km0JtQGp48sBx9ZJLbfGYA">本刊提炼</small></div>
+      <div class="quote" data-page-node-id="Cm4rEGNUm51hp0z5QkuOfi">“答案越便宜，决定哪一个答案进入现实的人越昂贵。”<small data-page-node-id="pzUN74lZHTbiXisU4QIGGP">本刊提炼</small></div>
+      <div class="quote" data-page-node-id="ULWRPqdhitlXw9kSN1ffMX">“判断力不是资历带来的否决权，而是一条可检验的责任链。”<small data-page-node-id="3kJgD8wa1jwL7wfiI2o3Ad">本刊提炼</small></div>
+      <div class="quote" data-page-node-id="dDPhcaPzTrhymDnI9ybhfC">“定义问题，不是把任务说得更长，而是决定什么值得被优化。”<small data-page-node-id="QbfQgzk73UWRHWE7DBvQVK">本刊提炼</small></div>
+      <div class="quote" data-page-node-id="dDD6jPS4iPmwkdH8L3yTar">“好的证据标准，应当提前说明什么会让我们改变主意。”<small data-page-node-id="ObJIpHeHLa8qCFGxAYWFRj">本刊提炼</small></div>
+      <div class="quote" data-page-node-id="eobvGMqb0lRzWAwhGAXFDO">“委派任务不等于转移责任，自动执行也不等于自动免责。”<small data-page-node-id="8q94P0peqj2OXswE9HEsMO">本刊提炼</small></div>
+      <div class="quote" data-page-node-id="1x6GEFJzCmIE7dGznGVNDj">“世界更快之后，专业的标志将是选择更准、边界更清、责任更明。”<small data-page-node-id="hw9K1Ba7YgG49YpbY9SbMA">本刊提炼</small></div>
+    </div>
+  </div>
+</section>
+<section class="series" data-page-node-id="GiVtISv5Vgz68kMIBPfPgT">
+  <h2 data-page-node-id="7XwC1HkMNK3AnS5qBIR1Pg">下一期，继续追问</h2>
+  <div class="series-item" data-page-node-id="we9GJHqZWW203EcBhrjsO4"><div class="serial" data-page-node-id="25LQTwkHFbYcWqlVbGXsmx">02</div><div data-page-node-id="yE3EDcOBPJdd5S0mkmFTRa"><h3 data-page-node-id="WyqsFlIdbTbQShkdjbCCp1">当创意可以批量生成：品牌为何更需要“拒绝的能力”</h3><p data-page-node-id="NReCTWr9ZzvGuXX4dhfaJG">从内容过剩出发，讨论品牌如何建立审美边界、叙事纪律与长期一致性。</p></div></div>
+  <div class="series-item" data-page-node-id="ljaNeDRceZIsKCdXQG2VGQ"><div class="serial" data-page-node-id="80Ux0Ay4xME7tOpwgs1aAP">03</div><div data-page-node-id="lmOyIBqiVuOv0DDGwqBbSA"><h3 data-page-node-id="oXe1rYfwA02elCB5AiF9t3">智能体进入组织之后：管理者从派活的人变成设计责任的人</h3><p data-page-node-id="uhOHHFJwqnBAQpeymFWQje">追踪人机协作中的权限、复核、升级与问责机制如何重写管理岗位。</p></div></div>
+  <div class="series-item" data-page-node-id="xBWNpLkqKwa5SaG56GqNhr"><div class="serial" data-page-node-id="wo0QZrJyD52tqJ4NyUWyvH">04</div><div data-page-node-id="a3j64sBa5FBKyexeE2MXGY"><h3 data-page-node-id="tEEAqTOJeTI7AbLh7ytS4H">效率的隐形账单：谁在为更快的工作承担返工、焦虑与信任成本</h3><p data-page-node-id="ezkrobcyMgEAUCgDZg5vY0">把 AI 项目评估从节省工时扩展到错误、协调、职业迁移与组织信任。</p></div></div>
+</section>
+<section class="sources" id="sources" data-page-node-id="ARD1UCmIdWAYnsQAYuGyN9">
+  <div class="sources-inner" data-page-node-id="p95MamKfXCOHD9I0jsdQPM">
+    <div class="eyebrow" data-page-node-id="TrVFJ1XDAMdOAgYc1I046v">SOURCES &amp; NOTES</div><h2 data-page-node-id="XtbwoPWgIr1eKXgKCBCpwk">来源说明</h2>
+    <div class="source" data-page-node-id="9rziQiRF0b8m22k0IDHHXx"><div class="sn" data-page-node-id="OVVRAEtUQEujVRdfGMj1iv">01</div><div data-page-node-id="FVgFr3wRwehcXd90JoCxHN"><h3 data-page-node-id="n5tCfBHJw07zRLLJvfnROd">Microsoft, “2025 Work Trend Index Annual Report: 2025—The Year the Frontier Firm Is Born”</h3><p data-page-node-id="gKomZg58WaSfofXH7c7ceV">2025 · 访问日期：2026-09-08</p><p data-page-node-id="gJ7KafF5dAMwDjsPSrPKEd">https://aka.ms/2025WorkTrendIndexAnnualReport</p></div></div>
+    <div class="source" data-page-node-id="UtRt1COga74AtTlPZrjk1I"><div class="sn" data-page-node-id="eHfExBkgIAQ9BCTCDCBzH5">02</div><div data-page-node-id="lnHJvSCdSk6UMMPYGJ4wIA"><h3 data-page-node-id="mBpLblbmzP4nFNwYxlOEfU">World Economic Forum, “Future of Jobs Report 2025: 78 Million New Job Opportunities by 2030 but Urgent Upskilling Needed to Prepare Workforces”</h3><p data-page-node-id="WfSJf0UCw837OXpNMgFNq2">2025 · 访问日期：2026-09-08</p><p data-page-node-id="zLZkjnKSKNxf8ChFUWZOIM">https://www.weforum.org/press/2025/01/future-of-jobs-report-2025-78-million-new-job-opportunities-by-2030-but-urgent-upskilling-needed-to-prepare-workforces</p></div></div>
+    <div class="source" data-page-node-id="ZY76FjEOtIx0XiiI5nqSDs"><div class="sn" data-page-node-id="2YfpSot7k6u709vP6eWMXh">03</div><div data-page-node-id="qS5kuGUlhRH9XXLMWNO7nf"><h3 data-page-node-id="1G9JO2MN93rTV7etF9ErJd">Stanford Institute for Human-Centered Artificial Intelligence, “The 2025 AI Index Report”</h3><p data-page-node-id="EFDTrVNe9YnK1LEiqRkSli">2025 · 访问日期：2026-09-08</p><p data-page-node-id="ofogOfGQ9LKQJ1ZFZ4Po05">https://hai.stanford.edu/ai-index/2025-ai-index-report</p></div></div>
+    <div class="source" data-page-node-id="VYGjp6786rhCx0RHMJNz2D"><div class="sn" data-page-node-id="dxZFsBCHWsGqbEEv0hWQte">04</div><div data-page-node-id="q5abQLTSS0IODBEeLAPZbj"><h3 data-page-node-id="8AwXAvNhkechhegiWt8sVa">Anthropic, “Anthropic Economic Index Report: Uneven Geographic and Enterprise AI Adoption”</h3><p data-page-node-id="d9aiOAJOd0jpkZYayUTFKp">2025 · 访问日期：2026-09-08</p><p data-page-node-id="XaGMejl0mfHwGRZCs689mT">https://www.anthropic.com/research/anthropic-economic-index-september-2025-report</p></div></div>
+    <div class="caveat" data-page-node-id="vFKp0damPN4fOMm4Q8nWkW"><strong data-page-node-id="oscEIlMt4EI34w9sIJ0hrI">口径说明</strong><br data-page-node-id="lxi1BfZ3IvwCAokXnLGCcz">Microsoft 的 71% 对 37% 是特定定义群体的调查对比，不证明 AI 单独导致企业表现差异；RE-Bench 的短时与长时结果只适用于该基准和时间预算；WEF 的岗位数据是结构性预测，不意味着转换无摩擦；Anthropic 数据只反映其 Claude.ai 与第一方 API 抽样流量，不可泛化为全部职场。</div>
+  </div>
+</section>
+</main>
+<footer data-page-node-id="41QofWsQ0VHv1L8bd6KVnW"><span data-page-node-id="qtHhFrauSeQEdFV9M7GX7T">趋势议题深度专栏 · ISSUE 01</span><span data-page-node-id="iAitMF7O4YskxR1fhrgeBQ">智能可以降价，责任不能悬空</span></footer>
+<script>
+(function(){
+  var focus=document.getElementById('focusMode');
+  var size=document.getElementById('fontSize');
+  focus.addEventListener('click',function(){
+    var on=document.body.classList.toggle('focus');
+    focus.textContent=on?'退出阅读模式':'阅读模式';
+    focus.setAttribute('aria-pressed',String(on));
+  });
+  size.addEventListener('click',function(){
+    var on=document.body.classList.toggle('large');
+    size.textContent=on?'标准字号':'增大字号';
+    size.setAttribute('aria-pressed',String(on));
+  });
+  document.querySelectorAll('[data-target]').forEach(function(button){
+    button.addEventListener('click',function(){
+      var target=document.getElementById(button.getAttribute('data-target'));
+      if(target){target.scrollIntoView({behavior:'smooth',block:'start'});}
+    });
+  });
+})();
+</script>
+</body>
+</html>
