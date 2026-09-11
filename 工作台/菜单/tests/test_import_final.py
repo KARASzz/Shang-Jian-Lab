@@ -73,6 +73,29 @@ class ImportFinalTests(unittest.TestCase):
             self.assertFalse((repo.archive() / issue_id).exists())
             self.assertIn("已取消，文件未修改", output.out.getvalue())
 
+    def test_prompt_failure_does_not_fake_success_or_rollback_archive(self) -> None:
+        from 工作台.菜单.tests._harness import TempRepo
+
+        with TempRepo() as repo:
+            issue_id = "2026-09-09-14-34-16-大模型二三事"
+            issue_root = _seed_simple_issue(repo, issue_id)
+            (issue_root / "待定稿" / "推荐稿.md").write_text(
+                "# 评测榜第一为何无法复现\n\n正文", encoding="utf-8"
+            )
+            output = _RunIO()
+            with patch.object(import_final.prompt, "confirm", return_value=True), patch(
+                "工作台.流水线.image_prompts.generate_image_prompt_file",
+                side_effect=RuntimeError("model unavailable"),
+            ):
+                import_final.run(output)
+
+            archived = repo.archive() / issue_id / "待定稿" / (
+                "熵减进化室-公众号成稿-《评测榜第一为何无法复现》.md"
+            )
+            self.assertTrue(archived.exists())
+            self.assertIn("归档已完成，但配图提示词未生成", output.out.getvalue())
+            self.assertNotIn("三张图的一条总提示词已写入", output.out.getvalue())
+
     def test_normalize_shell_escaped_dragged_path(self) -> None:
         from 工作台.菜单.tests._harness import TempRepo
 
