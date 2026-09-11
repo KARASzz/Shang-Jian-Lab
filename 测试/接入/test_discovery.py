@@ -1,4 +1,4 @@
-"""discovery 测试 —— 启动失败 / 工具缺失的降级路径。"""
+"""discovery 测试 —— 成功初始化与失败路径。"""
 
 from __future__ import annotations
 
@@ -28,8 +28,8 @@ def _make_config(
     )
 
 
-class DiscoveryNotRunTests(unittest.TestCase):
-    def test_all_channels_return_not_run_in_dev(self) -> None:
+class DiscoveryTests(unittest.TestCase):
+    def test_all_channels_return_ok(self) -> None:
         cfg = _make_config(
             tavily=MCPStdioConfig(
                 transport="stdio",
@@ -51,16 +51,15 @@ class DiscoveryNotRunTests(unittest.TestCase):
         with patch("工作台.接入.discovery.TavilyMCPClient") as TavilyCls, patch(
             "工作台.接入.discovery.BraveMCPClient"
         ) as BraveCls:
-            TavilyCls.return_value.start.return_value = {"status": "not_run_in_dev"}
-            TavilyCls.return_value.discover_tools.return_value = []
-            BraveCls.return_value.handshake.return_value = {"status": "not_run_in_dev"}
-            BraveCls.return_value.discover_tools.return_value = []
+            TavilyCls.return_value.start.return_value = {"status": "ok"}
+            TavilyCls.return_value.discover_tools.return_value = ["search"]
+            BraveCls.return_value.handshake.return_value = {"status": "ok"}
+            BraveCls.return_value.discover_tools.return_value = ["web_search"]
             results = discover_all(cfg)
 
         self.assertEqual(set(results.keys()), {"tavily", "brave", "bing"})
         for name, r in results.items():
-            self.assertEqual(r.status, "not_run_in_dev", name)
-            self.assertEqual(r.tools, [], name)
+            self.assertEqual(r.status, "ok", name)
 
     def test_tavily_failure_returns_failed_with_empty_tools(self) -> None:
         cfg = _make_config(

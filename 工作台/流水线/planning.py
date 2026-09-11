@@ -59,7 +59,7 @@ class PlanningStage:
 
 
 def extract_angles(plan_text: str) -> list[str]:
-    """从策划正文抽出至少 3 个 ``##`` 角度标题；不足则失败，禁止占位。"""
+    """从策划正文抽出至少 3 个 ``##`` 角度标题；不足则失败。"""
     titles = [
         line[2:].strip()
         for line in plan_text.splitlines()

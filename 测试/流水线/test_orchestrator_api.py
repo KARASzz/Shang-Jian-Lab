@@ -18,7 +18,7 @@ class OrchestratorApiTests(unittest.TestCase):
         self.assertTrue(callable(getattr(orch_mod, "rerun", None)))
 
     def test_revised_draft_becomes_pending(self) -> None:
-        planner_text = "\n".join(f"候选 {i}" for i in range(1, 6))
+        planner_text = "\n".join(f"{i}. 候选 {i}" for i in range(1, 6))
         block = json.dumps({
             "score": 40,
             "recommendation": "draft_1",

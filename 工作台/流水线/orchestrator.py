@@ -122,6 +122,9 @@ class Orchestrator:
         if state.stage in ("finalizing", "archived", "awaiting_human"):
             return state
 
+        if state.stage != "topic_selection":
+            self._selected_topic()  # 恢复也必须有明确选题，禁止栏目名兜底。
+
         # 1) 选题
         if state.stage == "topic_selection":
             state, _md = self.topic_stage.run(
@@ -251,12 +254,12 @@ class Orchestrator:
         if path.exists():
             try:
                 data = json.loads(path.read_text(encoding="utf-8"))
-                topic = str(data.get("topic") or "").strip()
-                if topic:
-                    return topic
+                topic = data.get("topic") if isinstance(data, dict) else None
+                if isinstance(topic, str) and topic.strip():
+                    return topic.strip()
             except json.JSONDecodeError:
                 pass
-        return self.topic_seed or self.column
+        raise ValueError("尚未选择选题，不能继续；请先返回选题阶段完成选择")
 
     def _collect_evidence_ids(self) -> list[str]:
         path = Path(self.issue_dir) / "资料" / "证据清单.json"

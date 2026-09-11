@@ -21,7 +21,7 @@ class OrchestratorSmokeTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as issue_dir:
             # 1) planner 给 5 候选
-            planner_text = "\n".join(f"候选 {i}" for i in range(1, 6))
+            planner_text = "\n".join(f"{i}. 候选 {i}" for i in range(1, 6))
             # 2) reviewer 给出通过 + 高分
             reviewer_pass_text = json.dumps({
                 "score": 90, "recommendation": "draft_1", "pass_": True,
@@ -65,15 +65,15 @@ class OrchestratorSmokeTests(unittest.TestCase):
             ck = json.loads((issue / "运行记录" / "checkpoint.json").read_text(encoding="utf-8"))
             self.assertEqual(ck["stage"], "finalizing")
             chosen = json.loads((issue / "选题" / "选定.json").read_text(encoding="utf-8"))
-            self.assertEqual(chosen["topic"], "候选 1")
+            self.assertEqual(chosen["topic"], "1. 候选 1")
             evidence = json.loads((issue / "资料" / "证据清单.json").read_text(encoding="utf-8"))
-            self.assertEqual(evidence["topic"], "候选 1")
+            self.assertEqual(evidence["topic"], "1. 候选 1")
             plan = (issue / "策划" / "三角度策划.md").read_text(encoding="utf-8")
             headings = [ln for ln in plan.splitlines() if ln.startswith("## ")]
             self.assertGreaterEqual(len(headings), 3)
             for i in (1, 2, 3):
                 body = (issue / "三篇初稿" / f"初稿-{i}.md").read_text(encoding="utf-8")
-                self.assertNotIn("占位角度", body)
+                self.assertNotIn("空泛角度", body)
             # finalizing 产物
             self.assertTrue((issue / "待定稿" / "推荐稿.md").exists())
             self.assertTrue((issue / "待定稿" / "备选标题.md").exists())

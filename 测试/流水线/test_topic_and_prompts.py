@@ -15,7 +15,7 @@ from 测试.流水线._stubs import StubModel, StubUser
 
 class TopicSelectionPersistTests(unittest.TestCase):
     def test_writes_selected_topic_and_advances_checkpoint(self) -> None:
-        planner = StubModel(planner_text="\n".join(f"候选 {i}" for i in range(1, 6)))
+        planner = StubModel(planner_text="\n".join(f"{i}. 候选 {i}" for i in range(1, 6)))
         user = StubUser(choice=2)
         stage = TopicSelectionStage(planner=planner, user=user, snapshot_id="s")
         state = TaskState(issue_id="x", stage="topic_selection", snapshot_id="s")
@@ -28,7 +28,7 @@ class TopicSelectionPersistTests(unittest.TestCase):
             self.assertIsNotNone(ck)
             self.assertEqual(ck.stage, "evidence_collection")
             chosen = json.loads((Path(td) / "选题" / "选定.json").read_text(encoding="utf-8"))
-            self.assertEqual(chosen["topic"], "候选 2")
+            self.assertEqual(chosen["topic"], "2. 候选 2")
 
     def test_planner_system_prompt_comes_from_file(self) -> None:
         stage = TopicSelectionStage(

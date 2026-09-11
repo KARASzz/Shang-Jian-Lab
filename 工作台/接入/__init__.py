@@ -1,4 +1,4 @@
-"""工作台 / 接入层 —— 模型与搜索接入占位（A 子智能体范围）。"""
+"""工作台 / 接入层 —— 模型与搜索真实连接。"""
 
 from 工作台.接入.config import load_default_config, load_local_config
 from 工作台.接入.discovery import discover_all, MCPDiscoveryResult

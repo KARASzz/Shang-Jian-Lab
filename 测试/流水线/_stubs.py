@@ -65,7 +65,7 @@ class StubUser:
     choice: int | str = 1
     confirm_yes: bool = True
 
-    def choose_topic(self, candidates: list[str]) -> int | str:
+    def choose_topic(self, candidates: list[str], *, issue_dir: str | None = None) -> int | str:
         return self.choice
 
     def confirm(self, prompt: str) -> bool:

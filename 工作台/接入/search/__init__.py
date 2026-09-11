@@ -1,4 +1,4 @@
-"""工作台 / 接入 / search —— 搜索接入占位。"""
+"""工作台 / 接入 / search —— 搜索连接与结果归一化。"""
 
 from 工作台.接入.search.bing_public import BingPublicSearch
 from 工作台.接入.search.brave_mcp import BraveMCPClient

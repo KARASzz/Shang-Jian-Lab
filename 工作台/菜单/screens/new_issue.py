@@ -84,7 +84,7 @@ def _create_skeleton(issue_root: Path) -> None:
     ]
     for sub in subdirs:
         paths.ensure_dir(issue_root / sub)
-    # 占位说明，避免空目录被 Git 误删（不影响实际流水线读取）
+    # 初始化选题文件，便于用户查看本期入口。
     (issue_root / "选题" / "选题-候选.md").write_text(
         "# 选题-候选\n\n由流水线 B 在 topic_selection 阶段写入。\n",
         encoding=paths.UTF8,

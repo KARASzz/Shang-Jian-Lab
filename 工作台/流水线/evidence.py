@@ -66,6 +66,7 @@ class EvidenceCollectionStage:
         sources = self.collect(topic, anchor_reports=anchor_reports)
         if len(sources) > self.unique_max:
             sources = sources[: self.unique_max]
+        usable_sources = [source for source in sources if source.status == "ok" and source.url]
 
         material_dir = Path(issue_dir) / "资料"
         material_dir.mkdir(parents=True, exist_ok=True)
@@ -85,6 +86,9 @@ class EvidenceCollectionStage:
             json.dumps(evidence_payload, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+
+        if not usable_sources:
+            raise RuntimeError("检索未获得有效资料，已停止，不能继续策划和写稿")
 
         state = commit_stage(
             state,

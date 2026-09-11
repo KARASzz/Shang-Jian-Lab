@@ -1,9 +1,9 @@
-"""工作台 / 接入 / models / client —— OpenAI 兼容 Chat Completions 占位实现。
+"""工作台 / 接入 / models / client —— OpenAI 兼容 Chat Completions 客户端。
 
 设计原则（接口规范 §5）：
 
 - base url 来自 ``base_url_env``；key 来自 ``api_key_env``。
-- 缺失 key 时 **必须** 抛 AuthError，**禁止** 自动降级为占位响应。
+- 缺失 key 时 **必须** 抛 AuthError，**禁止**自动降级为假响应。
 - HTTP 401/403 → AuthError（直接停止，不重试）。
 - HTTP 429 → RateLimitError（最多重试 max_retries 次，含 Retry-After 时遵守）。
 - 超时 180s → TimeoutError（计入重试）。
@@ -13,7 +13,10 @@
 
 from __future__ import annotations
 
+import builtins
 import json
+from contextlib import contextmanager
+from threading import Event, Thread
 import os
 import time
 import urllib.error
@@ -41,6 +44,8 @@ from 工作台.接入.models.schemas import (
 
 class ModelClient:
     """OpenAI 兼容 Chat Completions 客户端。"""
+
+    progress_interval_seconds = 15.0
 
     def __init__(
         self,
@@ -99,19 +104,14 @@ class ModelClient:
             )
 
         endpoint = base_url.rstrip("/") + "/chat/completions"
-        # 调试打印：不包含任何 key
-        print(
-            f"[调试] role={request.role} "
-            f"将请求 {endpoint} request_model={request.request_model}"
-        )
-
         payload = self._build_payload(request)
         # max_retries=2 → 共 3 次（1 初始 + 2 重试）；max_retries=0 → 只打 1 次。
         total_tries = max(1, int(self._config.max_retries) + 1)
         last_exc: Exception | None = None
         for attempt in range(total_tries):
             try:
-                return self._do_call(endpoint, api_key, payload)
+                with self._progress(request.role):
+                    return self._do_call(endpoint, api_key, payload)
             except AuthError:
                 # 认证失败直接停止，不计入重试
                 raise
@@ -119,11 +119,14 @@ class ModelClient:
                 last_exc = e
                 if attempt >= total_tries - 1:
                     raise
+                print(f"服务繁忙，等待后重试（第 {attempt + 1}/{total_tries - 1} 次）…", flush=True)
                 self._respect_retry_after(e)
             except (TimeoutError, NetworkError) as e:
                 last_exc = e
                 if attempt >= total_tries - 1:
                     raise
+                reason = "等待超时" if isinstance(e, TimeoutError) else "连接暂时失败"
+                print(f"{reason}，正在重试（第 {attempt + 1}/{total_tries - 1} 次）…", flush=True)
                 # 简单退避：2^attempt 秒
                 self._sleeper(min(2 ** attempt, 8))
         # 兜底：走到这里说明所有重试用尽
@@ -131,6 +134,26 @@ class ModelClient:
         raise last_exc
 
     # ------------------------------------------------------------------ helpers
+
+    @contextmanager
+    def _progress(self, role: str):
+        action = {"planner": "整理选题与策划", "writer": "撰写稿件", "reviewer": "审阅稿件"}.get(role, "处理任务")
+        print(f"正在{action}…", flush=True)
+        stopped = Event()
+        started = time.monotonic()
+
+        def report():
+            while not stopped.wait(self.progress_interval_seconds):
+                elapsed = int(time.monotonic() - started)
+                print(f"仍在等待{action}结果，已等待 {elapsed} 秒…", flush=True)
+
+        reporter = Thread(target=report, daemon=True)
+        reporter.start()
+        try:
+            yield
+        finally:
+            stopped.set()
+            reporter.join()
 
     def _build_payload(self, request: ModelRequest) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -166,6 +189,10 @@ class ModelClient:
         started = self._clock()
         try:
             resp = opener.open(req, timeout=timeout)
+            try:
+                raw = resp.read()
+            finally:
+                resp.close()
         except urllib.error.HTTPError as e:
             return self._on_http_error(e, payload)
         except urllib.error.URLError as e:
@@ -177,7 +204,7 @@ class ModelClient:
                     status_code=None,
                 ) from e
             raise NetworkError(f"模型调用网络错误：{reason}", status_code=None) from e
-        except TimeoutError as e:  # 兼容传入的 sleeper/clock 触发的超时
+        except (builtins.TimeoutError, TimeoutError) as e:
             raise TimeoutError(
                 f"模型调用超时（>{timeout:.0f}s）：{e}",
                 status_code=None,
@@ -188,7 +215,6 @@ class ModelClient:
             ) from e
         _ = self._clock() - started
 
-        raw = resp.read()
         try:
             body = json.loads(raw)
         except json.JSONDecodeError as e:

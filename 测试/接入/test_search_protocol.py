@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import MagicMock
 
 from 工作台.接入.config import PublicSearchConfig
 from 工作台.接入.search.bing_public import BingPublicSearch
@@ -10,6 +11,11 @@ from 工作台.接口 import SearchSource
 
 
 def _bing() -> BingPublicSearch:
+    response = MagicMock()
+    response.read.return_value = b'<li class="b_algo"><h2><a href="https://example.test">Example</a></h2><p>Excerpt</p></li>'
+    response.close.return_value = None
+    opener = MagicMock()
+    opener.open.return_value = response
     return BingPublicSearch(
         PublicSearchConfig(
             endpoint="https://www.bing.com/search",
@@ -18,6 +24,7 @@ def _bing() -> BingPublicSearch:
         ),
         sleeper=lambda _s: None,
         clock=lambda: 0.0,
+        http_opener=lambda: opener,
     )
 
 
@@ -26,11 +33,10 @@ class BingProtocolTests(unittest.TestCase):
         results = _bing().search("判断力", round_idx=0)
         self.assertIsInstance(results, list)
 
-    def test_placeholder_does_not_look_like_zero_hits(self) -> None:
+    def test_real_search_returns_ok_source(self) -> None:
         results = _bing().search("判断力", round_idx=1)
         self.assertGreaterEqual(len(results), 1)
-        self.assertTrue(all(s.status != "ok" for s in results))
-        self.assertTrue(all(s.status in ("fetch_failed", "captcha", "paywall") for s in results))
+        self.assertTrue(all(s.status == "ok" for s in results))
 
     def test_fetch_returns_source(self) -> None:
         src = SearchSource(

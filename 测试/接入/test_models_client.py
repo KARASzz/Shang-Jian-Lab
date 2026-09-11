@@ -230,6 +230,43 @@ class ModelClientHTTPErrorTests(unittest.TestCase):
         _, kwargs = opener.open.call_args
         self.assertEqual(kwargs["timeout"], 180.0)
 
+    def test_read_timeout_retries_and_closes_response(self) -> None:
+        import builtins
+        bad = _http_response(200, {})
+        bad.read.side_effect = builtins.TimeoutError("timed out")
+        good = _http_response(200, {"choices": [{"message": {"content": "ok"}}]})
+        opener = MagicMock()
+        opener.open.side_effect = [bad, good]
+        client = ModelClient(_make_config(), http_opener=lambda: opener, sleeper=MagicMock())
+        self.assertEqual(client.complete(_make_request()).text, "ok")
+        bad.close.assert_called_once()
+        good.close.assert_called_once()
+
+    def test_waiting_progress_without_debug_details(self) -> None:
+        from contextlib import redirect_stdout
+        from io import StringIO
+        from threading import Event
+        output = StringIO()
+        ok = _http_response(200, {"choices": [{"message": {"content": "ok"}}]})
+        opener = MagicMock()
+        def slow_open(*args, **kwargs):
+            Event().wait(0.04)
+            return ok
+        opener.open.side_effect = slow_open
+        client = ModelClient(_make_config(), http_opener=lambda: opener)
+        client.progress_interval_seconds = 0.01
+        with redirect_stdout(output):
+            client.complete(_make_request())
+        text = output.getvalue()
+        self.assertIn("正在", text)
+        self.assertIn("等待", text)
+        self.assertNotIn("[调试]", text)
+        self.assertNotIn("https://", text)
+        self.assertNotIn("MiniMax", text)
+        after = output.getvalue()
+        Event().wait(0.03)
+        self.assertEqual(output.getvalue(), after)
+
     def test_other_url_error_raises_network_error(self) -> None:
         opener = MagicMock()
         opener.open.side_effect = urllib.error.URLError("Name or service not known")

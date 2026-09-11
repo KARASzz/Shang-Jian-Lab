@@ -23,7 +23,23 @@ class CompositeSearch:
         for client in (self._tavily, self._brave, self._bing):
             if client is None:
                 continue
-            batch = client.search(query, round_idx=round_idx)
+            try:
+                batch = client.search(query, round_idx=round_idx)
+            except Exception:  # noqa: BLE001 - 记录真实渠道失败，交由证据阶段拦截
+                channel = "brave" if client is self._brave else "tavily" if client is self._tavily else "bing"
+                batch = [SearchSource(
+                    id=f"{channel}-failed-r{round_idx}",
+                    url="",
+                    title=f"{channel} 搜索失败",
+                    publisher=None,
+                    published_at=None,
+                    accessed_at="",
+                    excerpt=query,
+                    locator=None,
+                    body_path=None,
+                    status="fetch_failed",
+                    channel=channel,
+                )]
             for src in batch:
                 if src.id in seen:
                     continue

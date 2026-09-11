@@ -106,10 +106,10 @@ class ReviewStage:
         *,
         draft_version: str,
     ) -> ReviewVerdict:
-        """骨架解析：信任外部 reviewer 输出 JSON；占位直接还原字段。
+        """解析 reviewer 输出 JSON，保留阻断类问题。
 
-        真实解析应基于 reviewer-system 提示词约定的 JSON Schema；骨架里
-        仅做兜底（mock-friendly），禁止在解析阶段掩盖阻断类。
+        解析以 reviewer-system 提示词约定的 JSON Schema 为准；仅做必要兜底，
+        禁止在解析阶段掩盖阻断类。
         """
         try:
             data = _loads_json_object(text)

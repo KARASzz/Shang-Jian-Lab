@@ -1,6 +1,6 @@
 # 工作台 / 接入层（A 子智能体）
 
-模型与搜索接入的**占位实现**：固定岗位、字段契约、错误分类，但不发起真实网络请求、不读取真实密钥。
+模型与搜索接入：固定岗位、字段契约、错误分类，并通过配置的真实服务获取结果。
 
 ## 目录
 
@@ -9,18 +9,18 @@
 ├── __init__.py
 ├── README.md              # 本文件
 ├── config.py              # 从 配置/默认.toml 读字段名；不读真实密钥
-├── discovery.py           # 启动时初始化 MCP、握手、做工具发现（占位）
+├── discovery.py           # 启动时初始化连接、握手、做工具发现
 ├── models/
 │   ├── __init__.py
-│   ├── client.py          # OpenAI 兼容 Chat Completions 占位
+│   ├── client.py          # OpenAI 兼容 Chat Completions
 │   ├── errors.py          # AuthError / TimeoutError / RateLimitError / NetworkError
 │   └── schemas.py         # ModelRequest / ModelResponse / TokenUsage（接口规范 §1）
 └── search/
     ├── __init__.py
-    ├── bing_public.py     # Bing 公开搜索占位 + 限流
-    ├── brave_mcp.py       # Brave http MCP 握手占位
+    ├── bing_public.py     # Bing 公开搜索 + 限流
+    ├── brave_mcp.py       # Brave MCP / Search API
     ├── schemas.py         # SearchSource（接口规范 §2）
-    └── tavily_mcp.py      # Tavily stdio MCP 启动占位
+    └── tavily_mcp.py      # Tavily Search API
 ```
 
 ## 与接口规范对齐
@@ -58,17 +58,17 @@ python -m unittest discover -s 测试/接入 -v
    BRAVE_API_KEY
    ```
 
-3. `配置/本地.toml` 中 MCP 启动字段：
+3. `配置/本地.toml` 中搜索连接字段：
 
-   - `[search.mcp.tavily]`：`transport = "stdio"`，需填 `command` / `args`（默认 `npx -y @tavily/mcp-server`）。
-   - `[search.mcp.brave]`：`transport = "http"`，需填 `url`（默认 `http://localhost:8080/mcp`）。
+   - `[search.mcp.tavily]`：读取 `env.TAVILY_API_KEY` 指向的环境变量，直接调用 Tavily Search API。
+   - `[search.mcp.brave]`：先尝试 `url` 的 MCP 端点；连接失败时用 `api_key_env` 调用 Brave Search API。
 
 4. 真实 base URL、key、MCP 启动参数**绝不写入仓库**；日志脱敏，不打印也不返回真实 key。
 
-## 行为约定（占位阶段）
+## 行为约定
 
-- **未配置 key**：所有 `ModelClient.complete()` 调用立即抛 `AuthError`，**绝不静默回退到占位响应**。
-- **未启动 MCP**：`discover_all()` 返回 `MCPDiscoveryResult(status="not_run_in_dev", tools=[])`，不抛异常。
+- **未配置 key**：模型或搜索调用立即抛出明确错误，绝不返回假响应。
+- **搜索失败或没有有效来源**：记录失败并停止证据阶段，不能继续策划和写稿。
 - **HTTP 401/403**：抛 `AuthError`，不重试，立即停止。
 - **HTTP 429**：抛 `RateLimitError`，按 `Retry-After` 退避，最多 `max_retries` 次。
 - **超时 180s**：抛 `TimeoutError`；其它网络错误抛 `NetworkError`。两者均计入重试。
@@ -80,5 +80,5 @@ python -m unittest discover -s 测试/接入 -v
 
 ## 边界
 
-- 本目录只写代码占位 + 配置接入文档；**不实现流水线状态机、菜单、CLI**。
+- 本目录负责模型、搜索和配置接入；流水线状态机、菜单、CLI 位于对应目录。
 - `工作台/接入/*.py` 与 `测试/接入/*.py` 是 A 子智能体的完整交付范围。

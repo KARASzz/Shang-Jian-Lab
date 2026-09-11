@@ -81,12 +81,14 @@ class DraftsStage:
                 plan_text=plan_text,
                 evidence_ids=evidence_ids,
             )
+            print(f"正在撰写第 {i}/3 篇初稿…", flush=True)
             resp = self.writer.chat(req)
             if resp.raw_error:
                 raise RuntimeError(f"writer 第 {i} 次失败：{resp.raw_error}")
             md = resp.text
             (drafts_dir / f"初稿-{i}.md").write_text(md, encoding="utf-8")
             state = record_version(state, f"draft_{i}", md)
+            print(f"第 {i}/3 篇初稿已保存。", flush=True)
             if i < 3:
                 state = advance(state)
                 atomic_write_checkpoint(state, Path(issue_dir) / "运行记录")
