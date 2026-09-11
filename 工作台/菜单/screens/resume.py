@@ -65,6 +65,13 @@ def run(io) -> None:
     io.println(f"快照：{state.get('snapshot_id', '未冻结')}")
     io.println(f"最后检查点：{state.get('last_checkpoint_at', '未知')}")
     io.println(f"已标过期：{', '.join(state.get('rerun_invalidated', [])) or '无'}")
+    stage = state.get("stage")
+    if stage == "awaiting_human":
+        io.println("当前阶段需要人工处理，菜单 2 不会继续调用模型。请先处理稿件，再选择重跑步骤。")
+        return
+    if stage in {"finalizing", "archived"}:
+        io.println("当前阶段已结束，菜单 2 不会重复执行。")
+        return
     try:
         _notify_orchestrator_resume(issue_root, state)
         io.println("已续跑本期流水线。")

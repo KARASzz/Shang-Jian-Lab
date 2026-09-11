@@ -1,0 +1,95 @@
+{
+  "round": 1,
+  "verdicts": [
+    {
+      "draft_version": "draft_1",
+      "issues": [
+        {
+          "severity": "block",
+          "category": "unsupported_key_fact",
+          "location": "全文",
+          "description": "审稿输出无法解析，按阻断处理",
+          "evidence_source_ids": [],
+          "suggestion": null
+        }
+      ],
+      "score": 0.0,
+      "recommendation": "draft_1",
+      "pass_": false
+    },
+    {
+      "draft_version": "draft_2",
+      "issues": [
+        {
+          "severity": "block",
+          "category": "unsupported_key_fact",
+          "location": "第9段：举个具体的例子。你让模型写一份金融研报摘要... [brave-1-1]",
+          "description": "第9段关于金融研报摘要的模型能力对比（通用模型“张冠李戴” vs 二线模型“数据引用准确”）属于具体的能力演示。文中以陈述句形式呈现，并挂载引用 [brave-1-1]。若该引用未包含此具体对比实验数据，则属于将假设性演示或个案夸大为行业事实，严重违反“禁止把能力演示写成全行业事实”的审稿侧重。需核查引用是否支持该具体对比，或修改为“假设性场景”描述。",
+          "evidence_source_ids": [
+            "brave-1-1"
+          ],
+          "suggestion": null
+        },
+        {
+          "severity": "block",
+          "category": "unsupported_key_fact",
+          "location": "第10段：再比如法律合同审查... [brave-1-5]",
+          "description": "第10段关于法律合同审查的模型能力对比（通用模型“指出语法错误” vs 专业需求“识别违约陷阱”）同样属于具体能力演示。挂载引用 [brave-1-5]。若引用不支持该具体对比结论，则构成关键事实无依据。需确保引用包含此类对比，或明确标注为示意性说明。",
+          "evidence_source_ids": [
+            "brave-1-5"
+          ],
+          "suggestion": null
+        },
+        {
+          "severity": "major",
+          "category": "unsupported_key_fact",
+          "location": "第7段：在某些极度依赖行业 Know-how 的任务里，二线模型甚至实现了反超。[brave-1-0]",
+          "description": "第7段断言“二线模型甚至实现了反超”，并挂载引用 [brave-1-0]。此为强事实主张。若引用仅为特定领域个案或未明确提及“反超”，则属于过度泛化，将特定能力演示推广为行业普遍事实。建议补充具体领域数据或弱化表述。",
+          "evidence_source_ids": [
+            "brave-1-0"
+          ],
+          "suggestion": null
+        }
+      ],
+      "score": 65.0,
+      "recommendation": "draft_2",
+      "pass_": false
+    },
+    {
+      "draft_version": "draft_3",
+      "issues": [
+        {
+          "severity": "minor",
+          "category": "evidence_quality",
+          "location": "第三部分：可签名的评测日志",
+          "description": "文中提到“可签名的评测日志……目前这还停留在学术探讨和早期实验阶段”，建议确保引用 [brave-1-5] 明确支持这一“早期实验阶段”的定性，避免读者误以为这是已落地的成熟行业标准。",
+          "evidence_source_ids": [
+            "brave-1-5"
+          ],
+          "suggestion": "核实引用内容，若引用仅为理论探讨，可微调措辞强调其前瞻性。"
+        }
+      ],
+      "score": 95.0,
+      "recommendation": "draft_3",
+      "pass_": true
+    }
+  ],
+  "recommendation": {
+    "draft_version": "draft_3",
+    "issues": [
+      {
+        "severity": "minor",
+        "category": "evidence_quality",
+        "location": "第三部分：可签名的评测日志",
+        "description": "文中提到“可签名的评测日志……目前这还停留在学术探讨和早期实验阶段”，建议确保引用 [brave-1-5] 明确支持这一“早期实验阶段”的定性，避免读者误以为这是已落地的成熟行业标准。",
+        "evidence_source_ids": [
+          "brave-1-5"
+        ],
+        "suggestion": "核实引用内容，若引用仅为理论探讨，可微调措辞强调其前瞻性。"
+      }
+    ],
+    "score": 95.0,
+    "recommendation": "draft_3",
+    "pass_": true
+  }
+}

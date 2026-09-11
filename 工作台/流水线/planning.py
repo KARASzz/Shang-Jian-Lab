@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from 工作台.接口 import ModelClient, ModelRequest
@@ -26,6 +27,8 @@ class PlanningStage:
                     "content": (
                         f"选题：{topic}\n证据摘要：\n{evidence_summary}\n"
                         "请给出三个不同角度，每个含中心判断、结构和证据指针。"
+                        "必须使用三个 Markdown 标题：## 角度 A：……、## 角度 B：……、## 角度 C：……；"
+                        "不要只输出散文段落或没有角度标识的列表。"
                     ),
                 },
             ],
@@ -59,12 +62,31 @@ class PlanningStage:
 
 
 def extract_angles(plan_text: str) -> list[str]:
-    """从策划正文抽出至少 3 个 ``##`` 角度标题；不足则失败。"""
-    titles = [
-        line[2:].strip()
-        for line in plan_text.splitlines()
-        if line.startswith("## ") and line[2:].strip()
-    ]
+    """从策划正文抽出至少 3 个明确的角度标题。
+
+    planner 可能使用 ``#`` / ``##`` / ``###`` 标题层级，也可能省略
+    Markdown 标记直接输出「角度一：……」。只接受带有明确序号或字母
+    标识的角度行，避免把总标题、结构小节或互斥性自检计入角度。
+    """
+
+    angle_marker = r"(?:[A-Ca-c]|[一二三]|[甲乙丙]|[1-3])"
+    angle_prefix_re = re.compile(
+        rf"^(?:角度|方向|视角)\s*{angle_marker}"
+        rf"(?:\s|[:：、.)）\-—]|$)"
+    )
+    letter_heading_re = re.compile(
+        rf"^{angle_marker}(?:\s*[:：、.)）\-—]|\s|$)"
+    )
+    titles: list[str] = []
+    for line in plan_text.splitlines():
+        raw = line.strip()
+        if not raw:
+            continue
+        is_heading = bool(re.match(r"^#{1,6}\s+", raw))
+        title = re.sub(r"^#{1,6}\s+", "", raw).strip()
+        if angle_prefix_re.match(title) or (is_heading and letter_heading_re.match(title)):
+            if title not in titles:
+                titles.append(title)
     if len(titles) < 3:
         raise ValueError(f"策划未给出 3 个角度（解析到 {len(titles)} 个）")
     return titles[:3]
