@@ -40,7 +40,13 @@ class ImportFinalTests(unittest.TestCase):
                 "# 评测榜第一为何无法复现\n\n正文", encoding="utf-8"
             )
             output = _RunIO()
-            with patch.object(import_final.prompt, "confirm", return_value=True):
+            prompt_file = repo.archive() / issue_id / "待定稿" / (
+                "熵减进化室-公众号成稿-《评测榜第一为何无法复现》-配图提示词.md"
+            )
+            with patch.object(import_final.prompt, "confirm", return_value=True), patch(
+                "工作台.流水线.image_prompts.generate_image_prompt_file",
+                return_value=prompt_file,
+            ):
                 import_final.run(output)
 
             archived = repo.archive() / issue_id / "待定稿" / (
@@ -49,6 +55,7 @@ class ImportFinalTests(unittest.TestCase):
             self.assertTrue(archived.exists())
             self.assertFalse(issue_root.exists())
             self.assertIn("已完成归档", output.out.getvalue())
+            self.assertIn("三张图的一条总提示词已写入", output.out.getvalue())
 
     def test_n_leaves_recommendation_untouched(self) -> None:
         from 工作台.菜单.tests._harness import TempRepo

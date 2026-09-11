@@ -253,6 +253,17 @@ def run(io) -> None:
             return
         io.println(f"已自动生成定稿：{final_path.name}")
         io.println(f"已完成归档：{result.dst}")
+        # 归档成功后再生成配图提示词；提示词失败不回滚已经完成的归档。
+        try:
+            from 工作台.流水线.image_prompts import generate_image_prompt_file
+
+            archived_final_path = result.dst / final_path.relative_to(issue_root)
+            io.println("正在调用 MiniMax M3，为 ChatGPT Images 2.5 生成一条三图总提示词…")
+            prompt_path = generate_image_prompt_file(archived_final_path)
+        except Exception:
+            io.println("归档已完成，但配图提示词未生成，请稍后重试。")
+        else:
+            io.println(f"三张图的一条总提示词已写入：{prompt_path}")
         return
     io.print("请把手改稿 / 定稿绝对路径拖入（或粘贴）：")
     raw = io.read_line().strip()
