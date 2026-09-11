@@ -36,7 +36,7 @@ class ImagePromptTests(unittest.TestCase):
                 json.dumps(
                     {
                         "prompt": (
-                            "请在同一次生成请求中一次性输出三张分别可用的独立图片，"
+                            "请在同一次生成请求中一次性输出三张分别可用的图片，"
                             "第一张是中央安全区的公众号封面，另外两张是不同叙事场景的文内图。"
                         )
                     },
