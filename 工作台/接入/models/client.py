@@ -18,6 +18,7 @@ import json
 from contextlib import contextmanager
 from threading import Event, Thread
 import os
+import ssl
 import time
 import urllib.error
 import urllib.request
@@ -42,6 +43,18 @@ from 工作台.接入.models.schemas import (
 )
 
 
+def _secure_opener() -> Any:
+    """Use certifi's CA bundle when the host Python lacks a usable CA path."""
+
+    try:
+        import certifi
+
+        context = ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        context = ssl.create_default_context()
+    return urllib.request.build_opener(urllib.request.HTTPSHandler(context=context))
+
+
 class ModelClient:
     """OpenAI 兼容 Chat Completions 客户端。"""
 
@@ -56,7 +69,9 @@ class ModelClient:
         clock: Callable[[], float] | None = None,
     ) -> None:
         self._config = config
-        self._http_opener = http_opener or urllib.request.build_opener
+        # macOS 的 Python.framework 不一定使用系统钥匙串；优先使用 certifi
+        # 的公开 CA 包，避免真实 HTTPS 请求被本机证书链误判为网络故障。
+        self._http_opener = http_opener or _secure_opener
         self._sleeper = sleeper or time.sleep
         self._clock = clock or time.monotonic
 

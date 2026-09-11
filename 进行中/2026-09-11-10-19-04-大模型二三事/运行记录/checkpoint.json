@@ -1,9 +1,9 @@
 {
   "issue_id": "2026-09-11-10-19-04-大模型二三事",
-  "stage": "finalizing",
+  "stage": "planning",
   "versions": {
     "topic_selection": "368a35b18f9730f0a231f2262b6402e3f9b391589f8e81410f13e47085b9f23e",
-    "evidence_collection": "c305bcd7f3d21976fb55996362ad0fe829baca9e70f7fc8123eec5da3afa4c62",
+    "evidence_collection": "9406b23fd4fef99b33555f461263867d8c68febe46017a591625f7e3f49538b0",
     "planning": "adf294a1758a833687124e3e111b87aba5b2d5d8c49183ca8de48d1cbf02ee56",
     "draft_1": "ad28667fb2b1f08dd513051daa0b2fba89c84573510aa934075289ffb6effdb1",
     "draft_2": "cd3fd18fb61fa1e9f58ee9128e43fc9f4307ddd5307309ff74f583479c5c6bf9",
@@ -11,10 +11,8 @@
     "finalizing": "e528046bc14baef1bbc8fe6518a0f942bf6944bdc0b87557af7bf983feaf711c"
   },
   "snapshot_id": "/Volumes/Sea of Symbols/+Python mac/+shang-jian-lab/配置/本期.toml",
-  "last_checkpoint_at": "2026-09-11T05:59:25+00:00",
+  "last_checkpoint_at": "2026-09-11T06:51:23+00:00",
   "rerun_invalidated": [
-    "topic_selection",
-    "evidence_collection",
     "planning",
     "draft_1",
     "draft_2",
