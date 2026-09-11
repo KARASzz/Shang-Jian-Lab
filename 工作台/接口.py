@@ -97,6 +97,7 @@ class ReviewVerdict:
 # ===== §4 任务状态 =====
 
 Stage = Literal[
+    "topic_research",
     "topic_selection",
     "evidence_collection",
     "planning",
@@ -138,6 +139,17 @@ class SearchClient(Protocol):
     def fetch(self, source: SearchSource) -> SearchSource: ...
 
 
+class CrawlClient(Protocol):
+    """把搜索得到的 URL 抓取成可核验的正文资料。"""
+
+    def crawl(
+        self,
+        sources: list[SearchSource],
+        *,
+        output_dir: str,
+    ) -> list[SearchSource]: ...
+
+
 class UserInput(Protocol):
     """用户交互抽象（数字菜单 / 输入框 / 提示）。"""
 
@@ -161,5 +173,6 @@ __all__ = [
     "TaskState",
     "ModelClient",
     "SearchClient",
+    "CrawlClient",
     "UserInput",
 ]

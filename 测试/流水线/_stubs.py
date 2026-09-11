@@ -61,6 +61,17 @@ class StubSearch:
 
 
 @dataclass
+class StubCrawler:
+    """不访问网络，模拟 Scrapy 把搜索来源变成可用正文。"""
+
+    calls: list[list[str]] = field(default_factory=list)
+
+    def crawl(self, sources: list[SearchSource], *, output_dir: str) -> list[SearchSource]:
+        self.calls.append([source.id for source in sources])
+        return list(sources)
+
+
+@dataclass
 class StubUser:
     choice: int | str = 1
     confirm_yes: bool = True
@@ -72,7 +83,7 @@ class StubUser:
         return self.confirm_yes
 
 
-def make_search_source(i: int) -> SearchSource:
+def make_search_source(i: int, channel: str = "tavily") -> SearchSource:
     return SearchSource(
         id=f"src-{i}",
         url=f"https://example.test/{i}",
@@ -84,5 +95,5 @@ def make_search_source(i: int) -> SearchSource:
         locator=None,
         body_path=None,
         status="ok",
-        channel="tavily",
+        channel=channel,
     )

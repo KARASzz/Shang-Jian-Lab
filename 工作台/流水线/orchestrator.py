@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Iterable
 
 from 工作台.接口 import (
+    CrawlClient,
     ModelClient,
     SearchClient,
     UserInput,
@@ -33,6 +34,7 @@ from 工作台.流水线.finalizing import FinalizingStage
 from 工作台.流水线.planning import PlanningStage, extract_angles
 from 工作台.流水线.review import ReviewStage, has_blocking_issue
 from 工作台.流水线.revise import MaxRevisionsExceeded, ReviseStage
+from 工作台.流水线.research import TopicResearchStage
 from 工作台.流水线.state import (
     FINALIZING,
     STAGE_ORDER,
@@ -57,6 +59,7 @@ class Orchestrator:
         reviewer: ModelClient,
         search: SearchClient,
         user: UserInput,
+        crawler: CrawlClient | None = None,
         column: str,
         topic_seed: str | None = None,
         recent_issues: Iterable[str] = (),
@@ -65,6 +68,9 @@ class Orchestrator:
         deep_search_rounds_max: int = 2,
         deep_search_unique_max: int = 30,
         site_depth_max: int = 2,
+        topic_research_rounds_max: int = 2,
+        topic_research_sources_max_per_round: int = 6,
+        topic_research_min_valid_channels: int = 2,
     ) -> None:
         self.issue_id = issue_id
         self.issue_dir = issue_dir
@@ -75,8 +81,22 @@ class Orchestrator:
         self.anchor_reports = list(anchor_reports)
         self.revision_rounds_max = revision_rounds_max
 
+        self.topic_research_stage = (
+            TopicResearchStage(
+                search=search,
+                crawler=crawler,
+                rounds_max=topic_research_rounds_max,
+                max_sources_per_round=topic_research_sources_max_per_round,
+                min_valid_channels_per_round=topic_research_min_valid_channels,
+            )
+            if crawler is not None else None
+        )
+
         self.topic_stage = TopicSelectionStage(
-            planner=planner, user=user, snapshot_id=snapshot_id,
+            planner=planner,
+            user=user,
+            snapshot_id=snapshot_id,
+            require_research=crawler is not None,
         )
         self.evidence_stage = EvidenceCollectionStage(
             search=search,
@@ -107,7 +127,7 @@ class Orchestrator:
             from 工作台.接口 import TaskState
             return TaskState(
                 issue_id=self.issue_id,
-                stage="topic_selection",
+                stage="topic_research" if self.topic_research_stage is not None else "topic_selection",
                 snapshot_id=self.snapshot_id,
             )
         return ckpt
@@ -122,10 +142,22 @@ class Orchestrator:
         if state.stage in ("finalizing", "archived", "awaiting_human"):
             return state
 
-        if state.stage != "topic_selection":
+        if state.stage not in ("topic_research", "topic_selection"):
             self._selected_topic()  # 恢复也必须有明确选题，禁止栏目名兜底。
 
-        # 1) 选题
+        # 1) 选题前研究：两轮各调用 Tavily / Brave / Bing，再用 Scrapy 抓取。
+        if state.stage == "topic_research":
+            if self.topic_research_stage is None:
+                raise RuntimeError("缺少 Scrapy 选题研究客户端，不能生成候选选题")
+            state, _summary = self.topic_research_stage.run(
+                state,
+                issue_dir=self.issue_dir,
+                column=self.column,
+                recent_issues=self.recent_issues,
+                topic_seed=self.topic_seed,
+            )
+
+        # 2) 选题
         if state.stage == "topic_selection":
             state, _md = self.topic_stage.run(
                 state,
@@ -134,7 +166,7 @@ class Orchestrator:
                 recent_issues=self.recent_issues,
             )
 
-        # 2) 证据
+        # 3) 证据
         if state.stage == "evidence_collection":
             topic = self._selected_topic()
             state, _sources = self.evidence_stage.run(
@@ -144,7 +176,7 @@ class Orchestrator:
                 anchor_reports=self.anchor_reports,
             )
 
-        # 3) 策划
+        # 4) 策划
         if state.stage == "planning":
             evidence_ids = self._collect_evidence_ids()
             topic = self._selected_topic()
@@ -155,7 +187,7 @@ class Orchestrator:
                 evidence_summary="\n".join(evidence_ids),
             )
 
-        # 4) 三稿
+        # 5) 三稿
         if state.stage in ("draft_1", "draft_2", "draft_3"):
             plan_text = self._read(Path(self.issue_dir) / "策划" / "三角度策划.md")
             angles = extract_angles(plan_text)
@@ -170,7 +202,7 @@ class Orchestrator:
                 evidence_ids=evidence_ids,
             )
 
-        # 5) 初轮审稿
+        # 6) 初轮审稿
         if state.stage == "review_1":
             drafts = self._read_drafts()
             state, verdicts, rec = self.review_stage.run(
@@ -367,6 +399,7 @@ def build_orchestrator(issue_root: str | Path, *, user=None) -> Orchestrator:
     from 工作台.接入.envfile import load_env_files
     from 工作台.接入.models.client import ModelClient
     from 工作台.接入.search.composite import CompositeSearch
+    from 工作台.接入.search.scrapy_crawler import ScrapyCrawler
     from 工作台.流水线.cli_user import CliUser
 
     root = _repo_root()
@@ -387,11 +420,18 @@ def build_orchestrator(issue_root: str | Path, *, user=None) -> Orchestrator:
         reviewer=ModelClient(cfg.models["reviewer"]),
         search=CompositeSearch(cfg),
         user=user or CliUser(),
+        crawler=ScrapyCrawler(
+            depth_limit=pipe.site_depth_max if pipe else 1,
+            max_pages=pipe.scrapy_max_pages if pipe else 36,
+        ),
         column=_parse_column(issue_id),
         revision_rounds_max=pipe.revision_rounds_max if pipe else 2,
         deep_search_rounds_max=pipe.deep_search_rounds_max if pipe else 2,
         deep_search_unique_max=pipe.deep_search_unique_sources_max if pipe else 30,
         site_depth_max=pipe.site_depth_max if pipe else 2,
+        topic_research_rounds_max=pipe.topic_research_rounds_max if pipe else 2,
+        topic_research_sources_max_per_round=pipe.topic_research_sources_max_per_round if pipe else 6,
+        topic_research_min_valid_channels=pipe.topic_research_min_valid_channels if pipe else 2,
     )
 
 
@@ -402,6 +442,7 @@ def resume(*, issue_root, stage=None, orchestrator=None, user=None, **_):
     state = orch.load_state()
     current = {}
     for key, rel in (
+        ("topic_research", Path("选题") / "研究" / "研究摘要.md"),
         ("topic_selection", Path("选题") / "选题-候选.md"),
         ("planning", Path("策划") / "三角度策划.md"),
     ):

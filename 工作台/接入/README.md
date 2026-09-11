@@ -20,6 +20,7 @@
     ├── bing_public.py     # Bing 公开搜索 + 限流
     ├── brave_mcp.py       # Brave MCP / Search API
     ├── schemas.py         # SearchSource（接口规范 §2）
+    ├── scrapy_crawler.py  # 搜索结果 URL 的有限深度正文抓取
     └── tavily_mcp.py      # Tavily Search API
 ```
 
@@ -33,6 +34,12 @@
 | §2 搜索接口 | `SearchSource` 字段与字面量 | `工作台/接入/search/schemas.py` |
 | §2 MCP 启动 | stdio 先做工具发现；http 先 ping `/mcp` 握手 | `工作台/接入/search/tavily_mcp.py` / `brave_mcp.py` / `discovery.py` |
 | §5 调用限制 | 超时 / 重试 / 限流上限 | `工作台/接入/models/client.py` |
+
+## 搜索与抓取分工
+
+- Tavily、Brave、Bing 负责发现候选 URL；每轮各调用一次。
+- `ScrapyCrawler` 负责下载和解析这些 URL，正文写入当期 `选题/研究/抓取/`。
+- 选题研究严格执行两轮；Scrapy 未安装、三渠道调用未完成或有效渠道不足时停止，不生成 5 个候选。
 
 ## 运行
 
@@ -76,7 +83,9 @@ python -m unittest discover -s 测试/接入 -v
 ## 依赖
 
 - 标准库：`dataclasses`、`tomllib`（Python 3.11+）、`urllib.request`、`urllib.error`、`subprocess`、`os`。
-- 可选第三方：暂未引入。集成阶段若引入 `httpx` / `requests`，需在本节追加并标注「可选」。
+- 第三方运行依赖：`Scrapy`（选题研究阶段必须安装；当前 Python 环境可用
+  `python3 -m pip install 'Scrapy>=2.13' 'pyOpenSSL<26' 'cryptography<47' 'service-identity<26'`
+  安装，避免覆盖已有加密依赖）。
 
 ## 边界
 

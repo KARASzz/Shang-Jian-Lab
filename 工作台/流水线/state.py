@@ -15,6 +15,7 @@ from 工作台.接口 import Stage, TaskState
 
 # 接口规范 §4 的字面顺序；finalizing / archived 不在自动流水线里推进。
 STAGE_ORDER: tuple[Stage, ...] = (
+    "topic_research",
     "topic_selection",
     "evidence_collection",
     "planning",
@@ -31,6 +32,11 @@ STAGE_ORDER: tuple[Stage, ...] = (
 # 上游重跑时被标记为过期的下游映射：键 = 被重跑的阶段，值 = 当前及之后所有阶段。
 # 与 PLAN §4「重跑上游生成新版本并将下游标为过期」一致。
 RERUN_DOWNSTREAM: dict[Stage, tuple[Stage, ...]] = {
+    "topic_research": (
+        "topic_research", "topic_selection", "evidence_collection", "planning",
+        "draft_1", "draft_2", "draft_3",
+        "review_1", "revise_1", "review_2", "revise_2",
+    ),
     "topic_selection": (
         "topic_selection", "evidence_collection", "planning",
         "draft_1", "draft_2", "draft_3",

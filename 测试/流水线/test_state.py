@@ -30,7 +30,9 @@ def _ts() -> TaskState:
 class StageAdvanceTests(unittest.TestCase):
     def test_advance_normal_sequence(self):
         s = _ts()
-        for expected in STAGE_ORDER[1:]:
+        # 从旧的 topic_selection 起点验证其余自动阶段；新建一期先经过
+        # topic_research，见 TopicResearchTests。
+        for expected in STAGE_ORDER[2:]:
             s = advance(s)
             self.assertEqual(s.stage, expected)
         self.assertEqual(s.stage, STAGE_ORDER[-1])

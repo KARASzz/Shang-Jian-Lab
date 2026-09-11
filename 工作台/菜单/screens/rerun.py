@@ -20,6 +20,7 @@ from ..paths import list_issue_dirs
 
 # 阶段顺序，按 :mod:`工作台/接口规范.md` 第 4 节。
 STAGE_ORDER: tuple[str, ...] = (
+    "topic_research",
     "topic_selection",
     "evidence_collection",
     "planning",

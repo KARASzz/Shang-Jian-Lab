@@ -56,6 +56,10 @@ class PipelineConfig:
     revision_rounds_max: int
     network_retry_max: int
     auth_failure_abort: bool
+    topic_research_rounds_max: int = 2
+    topic_research_sources_max_per_round: int = 6
+    topic_research_min_valid_channels: int = 2
+    scrapy_max_pages: int = 36
 
 
 @dataclass(frozen=True)
@@ -164,9 +168,21 @@ def _parse_pipeline(raw: dict[str, Any]) -> PipelineConfig:
         revision_rounds_max=int(raw["revision_rounds_max"]),
         network_retry_max=int(raw["network_retry_max"]),
         auth_failure_abort=bool(raw["auth_failure_abort"]),
+        topic_research_rounds_max=int(raw.get("topic_research_rounds_max", 2)),
+        topic_research_sources_max_per_round=int(raw.get("topic_research_sources_max_per_round", 6)),
+        topic_research_min_valid_channels=int(raw.get("topic_research_min_valid_channels", 2)),
+        scrapy_max_pages=int(raw.get("scrapy_max_pages", 36)),
     )
     if not cfg.auth_failure_abort:
         raise ConfigError("[pipeline] auth_failure_abort 必须保持 true")
+    if cfg.topic_research_rounds_max != 2:
+        raise ConfigError("[pipeline] topic_research_rounds_max 必须为 2")
+    if cfg.topic_research_sources_max_per_round < 1:
+        raise ConfigError("[pipeline] topic_research_sources_max_per_round 必须大于 0")
+    if not 1 <= cfg.topic_research_min_valid_channels <= 3:
+        raise ConfigError("[pipeline] topic_research_min_valid_channels 必须在 1–3 之间")
+    if cfg.scrapy_max_pages < 1:
+        raise ConfigError("[pipeline] scrapy_max_pages 必须大于 0")
     return cfg
 
 

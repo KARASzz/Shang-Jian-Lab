@@ -88,7 +88,7 @@ def load_checkpoint(
     raw = json.loads(path.read_text(encoding="utf-8"))
     return TaskState(
         issue_id=raw.get("issue_id", ""),
-        stage=raw.get("stage", "topic_selection"),
+        stage=raw.get("stage", "topic_research"),
         versions=dict(raw.get("versions", {})),
         snapshot_id=raw.get("snapshot_id", ""),
         last_checkpoint_at=raw.get("last_checkpoint_at", ""),

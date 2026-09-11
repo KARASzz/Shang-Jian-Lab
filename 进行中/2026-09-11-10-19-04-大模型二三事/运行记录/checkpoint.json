@@ -1,16 +1,17 @@
 {
   "issue_id": "2026-09-11-10-19-04-大模型二三事",
-  "stage": "evidence_collection",
+  "stage": "finalizing",
   "versions": {
     "topic_selection": "368a35b18f9730f0a231f2262b6402e3f9b391589f8e81410f13e47085b9f23e",
-    "evidence_collection": "a607adfb47406f0752d6db166b3c37d10493ca5872dba1ea9e9c1713d768e9f8",
-    "planning": "78611242697fcb5f388935bdb7a8a0235b69a05b28aff3406007d31e203b4a7e",
-    "draft_1": "8f823c26118f0efe4583c525b682289f46e78294c77d96b7835c17e550e01b46",
-    "draft_2": "a71506654d2c6ff39d53bed0e3d91121701115244954ff4abb85ac2e868e0b3d",
-    "draft_3": "96cf854f592089812d77a8c801ff444c454a9dde17ee55a9b47c2650c352a1d0"
+    "evidence_collection": "c305bcd7f3d21976fb55996362ad0fe829baca9e70f7fc8123eec5da3afa4c62",
+    "planning": "adf294a1758a833687124e3e111b87aba5b2d5d8c49183ca8de48d1cbf02ee56",
+    "draft_1": "ad28667fb2b1f08dd513051daa0b2fba89c84573510aa934075289ffb6effdb1",
+    "draft_2": "cd3fd18fb61fa1e9f58ee9128e43fc9f4307ddd5307309ff74f583479c5c6bf9",
+    "draft_3": "e528046bc14baef1bbc8fe6518a0f942bf6944bdc0b87557af7bf983feaf711c",
+    "finalizing": "e528046bc14baef1bbc8fe6518a0f942bf6944bdc0b87557af7bf983feaf711c"
   },
   "snapshot_id": "/Volumes/Sea of Symbols/+Python mac/+shang-jian-lab/配置/本期.toml",
-  "last_checkpoint_at": "2026-09-11T05:36:59+00:00",
+  "last_checkpoint_at": "2026-09-11T05:59:25+00:00",
   "rerun_invalidated": [
     "topic_selection",
     "evidence_collection",

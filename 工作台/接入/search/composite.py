@@ -20,32 +20,42 @@ class CompositeSearch:
     def search(self, query: str, *, round_idx: int) -> list[SearchSource]:
         out: list[SearchSource] = []
         seen: set[str] = set()
-        for client in (self._tavily, self._brave, self._bing):
+        for channel, client in (
+            ("tavily", self._tavily),
+            ("brave", self._brave),
+            ("bing", self._bing),
+        ):
             if client is None:
-                continue
-            try:
-                batch = client.search(query, round_idx=round_idx)
-            except Exception:  # noqa: BLE001 - 记录真实渠道失败，交由证据阶段拦截
-                channel = "brave" if client is self._brave else "tavily" if client is self._tavily else "bing"
-                batch = [SearchSource(
-                    id=f"{channel}-failed-r{round_idx}",
-                    url="",
-                    title=f"{channel} 搜索失败",
-                    publisher=None,
-                    published_at=None,
-                    accessed_at="",
-                    excerpt=query,
-                    locator=None,
-                    body_path=None,
-                    status="fetch_failed",
-                    channel=channel,
-                )]
+                batch = [self._failure(channel, query, round_idx, "未配置")]
+            else:
+                try:
+                    batch = client.search(query, round_idx=round_idx)
+                except Exception:  # noqa: BLE001 - 记录真实渠道失败，交由证据阶段拦截
+                    batch = [self._failure(channel, query, round_idx, "调用失败")]
+                if not batch:
+                    batch = [self._failure(channel, query, round_idx, "未返回可用结果")]
             for src in batch:
                 if src.id in seen:
                     continue
                 seen.add(src.id)
                 out.append(src)
         return out
+
+    @staticmethod
+    def _failure(channel: str, query: str, round_idx: int, reason: str) -> SearchSource:
+        return SearchSource(
+            id=f"{channel}-failed-r{round_idx}",
+            url="",
+            title=f"{channel} 搜索{reason}",
+            publisher=None,
+            published_at=None,
+            accessed_at="",
+            excerpt=query,
+            locator=None,
+            body_path=None,
+            status="fetch_failed",
+            channel=channel,
+        )
 
     def fetch(self, source: SearchSource) -> SearchSource:
         channel = {

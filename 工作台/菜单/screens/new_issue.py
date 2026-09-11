@@ -6,7 +6,7 @@
 - 在 ``进行中/<issue>/`` 下创建 :mod:`进行中/README.md` 描述的子目录骨架。
 - 写入本期快照 ``配置/本期.toml``：把 ``默认.toml`` 拷贝到
   ``配置/本期.toml`` 作为本期模型岗位冻结快照。
-- 写 ``运行记录/checkpoint.json`` 初始态（``stage="topic_selection"``）。
+- 写 ``运行记录/checkpoint.json`` 初始态（``stage="topic_research"``）。
 
 模型快照的字段名以 ``配置/默认.toml`` 为准；具体取值仍由 B（流水线）
 在策划阶段补全，本屏只做"冻结"动作，不读取或验证凭据。
@@ -86,7 +86,7 @@ def _create_skeleton(issue_root: Path) -> None:
         paths.ensure_dir(issue_root / sub)
     # 初始化选题文件，便于用户查看本期入口。
     (issue_root / "选题" / "选题-候选.md").write_text(
-        "# 选题-候选\n\n由流水线 B 在 topic_selection 阶段写入。\n",
+        "# 选题-候选\n\n由流水线 B 在 topic_research 完成后、topic_selection 阶段写入。\n",
         encoding=paths.UTF8,
     )
 
@@ -96,7 +96,7 @@ def _write_initial_checkpoint(checkpoint: Path, *, issue_id: str, snapshot: Path
 
     state: dict[str, Any] = {
         "issue_id": issue_id,
-        "stage": "topic_selection",
+        "stage": "topic_research",
         "versions": {},
         "snapshot_id": str(snapshot.resolve()),
         "last_checkpoint_at": now.isoformat(timespec="seconds"),

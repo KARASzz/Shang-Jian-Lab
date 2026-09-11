@@ -20,6 +20,7 @@ from .checkpoint import (
     VersionMixingError,
 )
 from .topic_selection import TopicSelectionStage
+from .research import TopicResearchStage
 from .evidence import EvidenceCollectionStage
 from .planning import PlanningStage
 from .drafts import DraftsStage
@@ -41,6 +42,7 @@ __all__ = [
     "load_checkpoint",
     "VersionMixingError",
     "TopicSelectionStage",
+    "TopicResearchStage",
     "EvidenceCollectionStage",
     "PlanningStage",
     "DraftsStage",
