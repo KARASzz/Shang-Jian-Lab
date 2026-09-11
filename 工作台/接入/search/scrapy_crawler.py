@@ -9,6 +9,8 @@ from __future__ import annotations
 import hashlib
 import inspect
 import json
+import multiprocessing
+import sys
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -130,6 +132,34 @@ def _build_spider(scrapy: Any):
     return SeedSpider
 
 
+def _run_scrapy_process(
+    settings: dict[str, Any],
+    seeds: list[dict[str, Any]],
+    max_links_per_page: int,
+    result_queue: Any,
+) -> None:
+    """在独立进程中运行一次 Scrapy，避免 Twisted reactor 无法重启。"""
+
+    try:
+        import scrapy
+        from scrapy.crawler import CrawlerProcess
+
+        process = CrawlerProcess(settings=settings)
+        spider = _build_spider(scrapy)
+        process.crawl(
+            spider,
+            seeds=seeds,
+            max_links_per_page=max_links_per_page,
+        )
+        if "install_signal_handlers" in inspect.signature(process.start).parameters:
+            process.start(stop_after_crawl=True, install_signal_handlers=False)
+        else:  # pragma: no cover - older Scrapy compatibility
+            process.start()
+        result_queue.put({"ok": True})
+    except Exception as exc:  # noqa: BLE001 - parent converts to truthful error
+        result_queue.put({"ok": False, "error": type(exc).__name__})
+
+
 class ScrapyCrawler:
     """一次研究任务内运行一个 Scrapy crawler，避免重复启动 Twisted reactor。"""
 
@@ -157,7 +187,6 @@ class ScrapyCrawler:
             return []
         try:
             import scrapy
-            from scrapy.crawler import CrawlerProcess
         except ImportError as exc:  # pragma: no cover - depends on runtime environment
             raise ScrapyUnavailableError(
                 "未安装 Scrapy，无法进行选题网页抓取；请先安装 Scrapy 后重试"
@@ -173,7 +202,14 @@ class ScrapyCrawler:
             if source.status == "ok" and source.url
         ]
         if not seeds:
+            print("Scrapy 暂无可抓取的有效来源，跳过正文抓取。", flush=True)
             return list(sources)
+
+        print(
+            f"正在启动 Scrapy：抓取 {len(seeds)} 个来源，深度 {self.depth_limit}，"
+            f"最多 {self.max_pages} 页…",
+            flush=True,
+        )
 
         settings = {
             "LOG_ENABLED": False,
@@ -193,26 +229,40 @@ class ScrapyCrawler:
                 }
             },
         }
-        process = CrawlerProcess(settings=settings)
-        spider = _build_spider(scrapy)
+        # macOS 的 Objective-C 运行时禁止从带线程的进程 fork；使用 spawn。
+        # 其它 Unix 优先 fork，Windows 等平台回退到 spawn。
+        context_name = "spawn" if sys.platform == "darwin" else "fork"
         try:
-            process.crawl(
-                spider,
-                seeds=seeds,
-                max_links_per_page=self.max_links_per_page,
-            )
-            if "install_signal_handlers" in inspect.signature(process.start).parameters:
-                process.start(stop_after_crawl=True, install_signal_handlers=False)
-            else:  # pragma: no cover - older Scrapy compatibility
-                process.start()
+            context = multiprocessing.get_context(context_name)
+        except ValueError:  # pragma: no cover - Windows fallback
+            context = multiprocessing.get_context("spawn")
+        result_queue = context.Queue()
+        process = context.Process(
+            target=_run_scrapy_process,
+            args=(settings, seeds, self.max_links_per_page, result_queue),
+        )
+        try:
+            process.start()
+            process.join()
         except Exception as exc:  # noqa: BLE001 - preserve a truthful crawl failure
             raise ScrapyCrawlerError(f"Scrapy 抓取失败：{type(exc).__name__}") from exc
+        try:
+            outcome = result_queue.get(timeout=2)
+        except Exception as exc:  # noqa: BLE001 - child may have crashed before reporting
+            raise ScrapyCrawlerError("Scrapy 抓取失败：WorkerError") from exc
+        finally:
+            result_queue.close()
+        if process.exitcode != 0 or not outcome.get("ok"):
+            raise ScrapyCrawlerError(
+                f"Scrapy 抓取失败：{outcome.get('error', 'WorkerError')}"
+            )
 
         records: list[dict[str, Any]] = []
         if feed_path.exists():
             for line in feed_path.read_text(encoding="utf-8").splitlines():
                 if line.strip():
                     records.append(json.loads(line))
+        print(f"Scrapy 抓取完成，收到 {len(records)} 条页面记录。", flush=True)
         by_source: dict[str, list[dict[str, Any]]] = {}
         by_url: dict[str, list[dict[str, Any]]] = {}
         for record in records:
@@ -221,6 +271,7 @@ class ScrapyCrawler:
                 by_url.setdefault(str(record["url"]), []).append(record)
 
         result: list[SearchSource] = []
+        saved_count = 0
         for source in sources:
             items = by_source.get(source.id, []) or by_url.get(source.url, [])
             root = next((item for item in items if item.get("url") == source.url), None)
@@ -240,6 +291,12 @@ class ScrapyCrawler:
                 body_path=str(body_path),
                 status="ok",
             ))
+            saved_count += 1
+        print(
+            f"Scrapy 正文已落盘：{saved_count}/{len(seeds)} 个来源，"
+            f"失败 {len(seeds) - saved_count} 个。",
+            flush=True,
+        )
         return result
 
 

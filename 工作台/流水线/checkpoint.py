@@ -123,7 +123,10 @@ def record_version(state: TaskState, stage: str, text: str) -> TaskState:
 
     versions = dict(state.versions)
     versions[stage] = _hash_text(text)
-    return _replace(state, versions=versions)
+    # 阶段产物已经用新内容写入后，该阶段不再是过期状态；其下游仍保留
+    # 在清单中，直到各自生成新版本。
+    invalidated = [item for item in state.rerun_invalidated if item != stage]
+    return _replace(state, versions=versions, rerun_invalidated=invalidated)
 
 
 def commit_stage(

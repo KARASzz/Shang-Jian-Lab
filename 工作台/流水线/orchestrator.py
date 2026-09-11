@@ -100,6 +100,8 @@ class Orchestrator:
         )
         self.evidence_stage = EvidenceCollectionStage(
             search=search,
+            crawler=crawler,
+            require_crawl=crawler is not None,
             rounds_max=deep_search_rounds_max,
             unique_max=deep_search_unique_max,
             site_depth_max=site_depth_max,

@@ -85,6 +85,12 @@ class VersionMixingTests(unittest.TestCase):
         # 内容不变 → 不抛
         verify_versions(s, {"draft_1": "hello"})
 
+    def test_record_version_clears_only_rebuilt_stage(self):
+        s = rerun(_ts(), "planning")
+        s = record_version(s, "planning", "plan-v2")
+        self.assertNotIn("planning", s.rerun_invalidated)
+        self.assertIn("draft_1", s.rerun_invalidated)
+
     def test_verify_versions_mismatch_raises(self):
         s = _ts()
         s = record_version(s, "draft_1", "hello")

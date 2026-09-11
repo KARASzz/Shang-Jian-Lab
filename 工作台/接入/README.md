@@ -38,8 +38,8 @@
 ## 搜索与抓取分工
 
 - Tavily、Brave、Bing 负责发现候选 URL；每轮各调用一次。
-- `ScrapyCrawler` 负责下载和解析这些 URL，正文写入当期 `选题/研究/抓取/`。
-- 选题研究严格执行两轮；Scrapy 未安装、三渠道调用未完成或有效渠道不足时停止，不生成 5 个候选。
+- `ScrapyCrawler` 负责下载和解析这些 URL；选题研究正文写入当期 `选题/研究/抓取/`，选题后的证据正文写入 `资料/正文/`。
+- 选题研究严格执行两轮；证据阶段也必须抓取正文。Scrapy 未安装、三渠道调用未完成或有效渠道不足时停止，不生成 5 个候选或继续写稿。
 
 ## 运行
 
@@ -83,7 +83,7 @@ python -m unittest discover -s 测试/接入 -v
 ## 依赖
 
 - 标准库：`dataclasses`、`tomllib`（Python 3.11+）、`urllib.request`、`urllib.error`、`subprocess`、`os`。
-- 第三方运行依赖：`Scrapy`（选题研究阶段必须安装；当前 Python 环境可用
+- 第三方运行依赖：`Scrapy`（选题研究和证据阶段必须安装；当前 Python 环境可用
   `python3 -m pip install 'Scrapy>=2.13' 'pyOpenSSL<26' 'cryptography<47' 'service-identity<26'`
   安装，避免覆盖已有加密依赖）。
 

@@ -53,7 +53,7 @@
 三个模型共用一个 OpenAI 兼容 Base URL 和密钥配置，采用 Chat Completions：
 
 1. 用户选择专栏，Tavily / Brave / Bing 各检索两轮并由 Scrapy 抓取正文；研究完成后 MiniMax 提出 5 个候选选题，用户数字选题或输入自选题。
-2. `minimax-m3` 生成检索任务；程序调用 Tavily MCP、Brave MCP 和 Bing 公开搜索，MiniMax 整理证据。
+2. `minimax-m3` 生成检索任务；程序调用 Tavily MCP、Brave MCP 和 Bing 公开搜索，并由 Scrapy 抓取选题后的来源正文，MiniMax 整理证据。
 3. MiniMax 为同一选题策划三个不同角度，分别明确中心判断、结构和证据。
 4. `qwen3.7-plus` 分三次独立调用生成三篇完整稿件，默认顺序执行。
 5. `glm-5.1` 独立审查三篇，输出问题清单、评分和推荐稿。

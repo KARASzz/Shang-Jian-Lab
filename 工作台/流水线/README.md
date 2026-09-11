@@ -12,7 +12,7 @@
 | `checkpoint.py` | checkpoint.json 原子写（`.tmp` + `os.replace`，失败清理）、版本一致性校验 |
 | `research.py` | 选题前研究：两轮各调用 Tavily / Brave / Bing，再由 Scrapy 抓取正文 |
 | `topic_selection.py` | 选题：仅基于两轮研究资料调 planner 拿 5 候选 → 用户选/自选 |
-| `evidence.py` | 检索：调 search 拿证据 → `资料/证据清单.json` |
+| `evidence.py` | 两轮检索并由 Scrapy 抓正文：调 search + crawler → `资料/证据清单.json` |
 | `planning.py` | 策划：调 planner 出三角度策划.md |
 | `drafts.py` | 三稿：调 writer 依次生成 3 篇独立初稿 |
 | `review.py` | 审稿：调 reviewer；4 类必阻断不能被 score 救活 |
@@ -24,13 +24,13 @@
 
 ## 阶段顺序
 
-`topic_research → topic_selection → evidence_collection → planning → draft_1 → draft_2 → draft_3 → review_1 → revise_1 → review_2 → revise_2 → awaiting_human | finalizing`，其中 `topic_research` 必须完成两轮三渠道搜索和网页抓取；`finalizing` 仅在审稿通过且 ≤ 2 轮返修时由流水线写入；`archived` 由用户在 6 号菜单触发，本流水线不实现。
+`topic_research → topic_selection → evidence_collection → planning → draft_1 → draft_2 → draft_3 → review_1 → revise_1 → review_2 → revise_2 → awaiting_human | finalizing`，其中 `topic_research` 和 `evidence_collection` 都必须完成搜索后的网页抓取；`finalizing` 仅在审稿通过且 ≤ 2 轮返修时由流水线写入；`archived` 由用户在 6 号菜单触发，本流水线不实现。
 
 ## 依赖
 
 - 标准库：`dataclasses` / `datetime` / `hashlib` / `json` / `os` / `pathlib` / `typing`。
 - 跨模块：阶段代码只引用 `工作台.接口` 的数据类与 Protocol。真实客户端由 `orchestrator.build_orchestrator` 在续跑时组装。
-- 运行依赖：Scrapy（选题研究阶段必须安装；缺失时明确停步，不回退成假成功）。
+- 运行依赖：Scrapy（选题研究和证据阶段必须安装；缺失时明确停步，不回退成假成功）。
 - 可选：`pytest`（仅在运行 `测试/流水线/` 时需要，由主线程按需安装）。
 
 ## 不变量（接口规范对齐）
@@ -39,4 +39,4 @@
 - `pass_` 与 4 类 `block` 的关系：`block` 出现即 `pass_=False`，**`score` 不得救活**。
 - `revision_rounds_max` 默认 2；超限直接 `awaiting_human`，**不再调用模型**。
 - checkpoint 写失败时清理 `.tmp`，不得留下半文件。
-- 上游重跑 → `rerun_invalidated` 含当前及之后所有阶段；恢复时若产物哈希与 `versions` 不一致 → `VersionMixingError`。
+- 上游重跑 → `rerun_invalidated` 含当前及之后所有阶段；阶段生成新产物后立即移出清单；恢复时若产物哈希与 `versions` 不一致 → `VersionMixingError`。

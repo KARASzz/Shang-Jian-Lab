@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from 工作台.接口 import SearchClient, SearchSource
+from 工作台.接口 import CrawlClient, SearchClient, SearchSource
 from 工作台.流水线.checkpoint import commit_stage
 
 
@@ -22,13 +22,19 @@ class EvidenceCollectionStage:
         self,
         *,
         search: SearchClient,
+        crawler: CrawlClient | None = None,
+        require_crawl: bool = False,
         rounds_max: int = 2,
         unique_max: int = 30,
         site_depth_max: int = 2,
     ) -> None:
         if rounds_max < 1:
             raise ValueError("deep_search_rounds_max 必须 ≥ 1")
+        if require_crawl and crawler is None:
+            raise ValueError("证据阶段要求 Scrapy crawler")
         self.search = search
+        self.crawler = crawler
+        self.require_crawl = require_crawl
         self.rounds_max = rounds_max
         self.unique_max = unique_max
         self.site_depth_max = site_depth_max
@@ -43,9 +49,17 @@ class EvidenceCollectionStage:
         for r in range(self.rounds_max):
             if len(seen) >= self.unique_max:
                 break
+            print(
+                f"正在检索第 {r + 1}/{self.rounds_max} 轮证据：Tavily、Brave、Bing…",
+                flush=True,
+            )
             batch = self.search.search(
                 f"{topic} {' '.join(anchor_reports or [])}".strip(),
                 round_idx=r,
+            )
+            print(
+                f"第 {r + 1}/{self.rounds_max} 轮证据检索完成，收到 {len(batch)} 条结果。",
+                flush=True,
             )
             for src in batch:
                 if len(seen) >= self.unique_max:
@@ -66,10 +80,38 @@ class EvidenceCollectionStage:
         sources = self.collect(topic, anchor_reports=anchor_reports)
         if len(sources) > self.unique_max:
             sources = sources[: self.unique_max]
-        usable_sources = [source for source in sources if source.status == "ok" and source.url]
 
         material_dir = Path(issue_dir) / "资料"
         material_dir.mkdir(parents=True, exist_ok=True)
+
+        if self.crawler is not None:
+            seeds = [source for source in sources if source.status == "ok" and source.url]
+            print(f"正在抓取选题后的证据正文：{len(seeds)} 个来源…", flush=True)
+            crawled = self.crawler.crawl(seeds, output_dir=str(material_dir))
+            by_id = {source.id: source for source in crawled}
+            by_url = {source.url: source for source in crawled if source.url}
+            sources = [
+                by_id.get(source.id) or by_url.get(source.url, source)
+                for source in sources
+            ]
+            usable_sources = [
+                source for source in sources
+                if (
+                    source.status == "ok"
+                    and source.url
+                    and source.body_path
+                    and Path(source.body_path).is_file()
+                    and Path(source.body_path).stat().st_size > 0
+                )
+            ]
+            print(
+                f"证据正文抓取完成，可用正文 {len(usable_sources)}/{len(seeds)} 条。",
+                flush=True,
+            )
+        else:
+            if self.require_crawl:
+                raise RuntimeError("证据阶段缺少 Scrapy crawler，已停止")
+            usable_sources = [source for source in sources if source.status == "ok" and source.url]
 
         (material_dir / "锚点报告-版本核验.md").write_text(
             self.render_anchor_md(anchor_reports),
