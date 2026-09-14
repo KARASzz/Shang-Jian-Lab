@@ -98,7 +98,7 @@ class BraveMCPClient:
                 raise
         return list(self._tools)
 
-    def search(self, query: str, *, round_idx: int = 0, max_results: int = 10) -> list[SearchSource]:
+    def search(self, query: str, *, round_idx: int = 0, max_results: int = 20) -> list[SearchSource]:
         if self._mcp_failed and self._enable_direct_fallback:
             return self._direct_search(query, round_idx=round_idx, max_results=max_results)
         try:

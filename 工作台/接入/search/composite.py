@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Iterable
+
 from 工作台.接入.config import WorkbenchConfig
 from 工作台.接入.search.bing_public import BingPublicSearch
 from 工作台.接入.search.brave_mcp import BraveMCPClient
@@ -18,6 +20,31 @@ class CompositeSearch:
         self._brave = BraveMCPClient(config.brave) if config.brave else None
         self._bing = BingPublicSearch(config.bing) if config.bing else None
         self._ima = IMAKnowledgeBaseSearch(config.ima) if config.ima else None
+
+    def disabled_channels(self) -> set[str]:
+        """返回本进程内被永久禁用（配额用尽/未配置）的渠道集合。
+
+        选题研究阶段据此把 Tavily 等"已不可用"的渠道从必需集合中剔除，
+        避免每次重跑都因为单一渠道失败而整轮抛错。其余渠道仍按真实结果
+        计入 ``valid_channels``。
+        """
+        disabled: set[str] = set()
+        if self._tavily is None:
+            disabled.add("tavily")
+        elif getattr(self._tavily, "_disabled_reason", None):
+            disabled.add("tavily")
+        if self._brave is None:
+            disabled.add("brave")
+        if self._bing is None:
+            disabled.add("bing")
+        if self._ima is None:
+            disabled.add("ima")
+        return disabled
+
+    def expected_channels(self, base: Iterable[str] = ("tavily", "brave", "bing")) -> set[str]:
+        """返回本轮仍需被尝试的渠道；已禁用渠道自动豁免。"""
+        disabled = self.disabled_channels()
+        return {channel for channel in base if channel not in disabled}
 
     def search(self, query: str, *, round_idx: int) -> list[SearchSource]:
         out: list[SearchSource] = []

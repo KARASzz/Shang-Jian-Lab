@@ -13,6 +13,17 @@ from 工作台.流水线.checkpoint import commit_stage
 EXPECTED_CHANNELS = frozenset({"tavily", "brave", "bing"})
 
 
+def _disabled_channels(search: SearchClient) -> set[str]:
+    """返回本进程内被永久禁用的渠道；不存在该方法时按空集合处理。"""
+    getter = getattr(search, "disabled_channels", None)
+    if not callable(getter):
+        return set()
+    try:
+        return set(getter()) or set()
+    except Exception:  # noqa: BLE001 - 上报而非阻断：渠道元数据不该影响主流程
+        return set()
+
+
 class TopicResearchStage:
     """固定两轮调用 Tavily / Brave / Bing，并抓取搜索结果正文。"""
 
@@ -55,13 +66,15 @@ class TopicResearchStage:
             f"{column} {seed} {focus} 反方证据 失败案例 可验证数据 生产实践 2026".strip()
         )[:600]
 
-    @staticmethod
-    def _validate_attempts(round_idx: int, sources: list[SearchSource]) -> None:
+    def _validate_attempts(self, round_idx: int, sources: list[SearchSource]) -> None:
         attempted = {source.channel for source in sources}
-        missing = sorted(EXPECTED_CHANNELS - attempted)
+        disabled = _disabled_channels(self.search)
+        required = EXPECTED_CHANNELS - disabled
+        missing = sorted(required - attempted)
         if missing:
             raise RuntimeError(
-                f"选题研究第 {round_idx + 1} 轮未完成三渠道调用：缺少 {', '.join(missing)}"
+                f"选题研究第 {round_idx + 1} 轮未完成渠道调用：缺少 {', '.join(missing)}"
+                + (f"（已禁用：{', '.join(sorted(disabled)) or '无'}）" if disabled else "")
             )
 
     def _select_seeds(self, sources: list[SearchSource]) -> list[SearchSource]:
@@ -89,17 +102,25 @@ class TopicResearchStage:
         return out
 
     def _validate_crawled_round(self, round_idx: int, sources: list[SearchSource]) -> None:
+        disabled = _disabled_channels(self.search)
         valid_channels = {
             source.channel
             for source in sources
-            if source.status == "ok"
+            if source.channel not in disabled
+            and source.status == "ok"
             and (source.url or source.channel == "ima")
             and source.excerpt.strip()
         }
-        if len(valid_channels) < self.min_valid_channels_per_round:
+        # 被永久禁用的渠道不计入"必需"，但其余渠道仍要达到下限。
+        # 兜底：即便所有渠道都被禁用，仍至少留 1 个兜底阈值，避免空跑。
+        effective_min = min(self.min_valid_channels_per_round, len(EXPECTED_CHANNELS - disabled))
+        if effective_min == 0:
+            return
+        if len(valid_channels) < effective_min:
             raise RuntimeError(
                 f"选题研究第 {round_idx + 1} 轮抓取后有效渠道不足："
-                f"{len(valid_channels)}/{self.min_valid_channels_per_round}"
+                f"{len(valid_channels)}/{effective_min}"
+                + (f"（已禁用：{', '.join(sorted(disabled)) or '无'}）" if disabled else "")
             )
 
     @staticmethod
@@ -196,18 +217,45 @@ class TopicResearchStage:
         )
         crawled_by_id = {source.id: source for source in crawled}
         crawled_by_url = {source.url: source for source in crawled if source.url}
+        disabled = _disabled_channels(self.search)
+        last_error: RuntimeError | None = None
         for payload in payloads:
             updated: list[SearchSource] = []
             for raw in payload["sources"]:
                 source = SearchSource(**raw)
                 updated.append(crawled_by_id.get(source.id) or crawled_by_url.get(source.url, source))
-            self._validate_crawled_round(payload["round"] - 1, updated)
+            try:
+                self._validate_crawled_round(payload["round"] - 1, updated)
+            except RuntimeError as exc:
+                last_error = exc
+                # 失败时也要把已经抓到的正文落盘，下次续跑可直接复用，
+                # 避免 Tavily 等渠道禁用时整轮白跑。
+                payload["sources"] = [asdict(source) for source in updated]
+                payload["channels_attempted"] = sorted({source.channel for source in updated})
+                payload["disabled_channels"] = sorted(disabled)
+                (research_dir / f"第{payload['round']}轮-搜索.json").write_text(
+                    json.dumps(payload, ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+                continue
             payload["sources"] = [asdict(source) for source in updated]
             payload["channels_attempted"] = sorted({source.channel for source in updated})
+            payload["disabled_channels"] = sorted(disabled)
             (research_dir / f"第{payload['round']}轮-搜索.json").write_text(
                 json.dumps(payload, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
+
+        if last_error is not None:
+            # 把已落盘的中间结果提前汇总成 summary，再抛出原异常，
+            # 让用户在配置文件/编辑注中能看到当前各渠道状态。
+            summary = self._summary(payloads)
+            (research_dir / "研究摘要.md").write_text(
+                summary + "\n\n> 注意：本轮研究未通过有效渠道数校验，中间结果已落盘，"
+                "可手工修整后从 menu 4 续跑。\n",
+                encoding="utf-8",
+            )
+            raise last_error
 
         summary = self._summary(payloads)
         summary_path = research_dir / "研究摘要.md"

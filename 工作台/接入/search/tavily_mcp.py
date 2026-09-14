@@ -79,7 +79,7 @@ class TavilyMCPClient:
         self._key()
         return ["search"]
 
-    def search(self, query: str, *, round_idx: int = 0, max_results: int = 10) -> list[SearchSource]:
+    def search(self, query: str, *, round_idx: int = 0, max_results: int = 20) -> list[SearchSource]:
         if self._disabled_reason:
             return []
         payload = {
