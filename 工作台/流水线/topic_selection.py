@@ -37,12 +37,20 @@ class TopicSelectionStage:
         column: str,
         recent_issues: list[str],
         research_summary: str = "",
+        feedback: str | None = None,
     ) -> ModelRequest:
         research_block = ""
         if research_summary.strip():
             research_block = (
                 "\n\n两轮选题研究摘要（候选必须基于其中的来源，不得凭空补充）：\n"
                 f"{research_summary.strip()}\n"
+            )
+        feedback_block = ""
+        if feedback:
+            feedback_block = (
+                f"\n\n【纠错重试】上一次输出未通过校验：{feedback}\n"
+                "请严格按照下方格式重新输出恰好 5 个编号候选；编号必须连续 1–5；"
+                "每条必须包含标题行、立意行、证据行；证据字段只能从研究摘要的可引用来源 ID 中选择。\n"
             )
         messages = [
             {"role": "system", "content": system_prompt("planner")},
@@ -70,6 +78,7 @@ class TopicSelectionStage:
                     "5. **标题 E**\n"
                     "   立意：...\n"
                     "   证据：填入研究摘要中真实存在的来源 ID\n"
+                    f"{feedback_block}"
                 ),
             },
         ]
@@ -184,6 +193,12 @@ class TopicSelectionStage:
                 )
             if not allowed_evidence_ids:
                 raise RuntimeError("两轮选题研究没有可供候选引用的有效来源")
+            whitelist_lines = "\n".join(f"- {eid}" for eid in sorted(allowed_evidence_ids))
+            research_summary = (
+                f"{research_summary.rstrip()}\n\n"
+                "## 可引用的来源 ID 清单（每条候选的“证据”字段只能从这里选，禁止编造）\n"
+                f"{whitelist_lines}\n"
+            )
         cache = topic_dir / "候选.json"
         if cache.exists():
             candidates = json.loads(cache.read_text(encoding="utf-8"))
@@ -197,19 +212,38 @@ class TopicSelectionStage:
                     allowed_evidence_ids=allowed_evidence_ids,
                 )
         else:
-            req = self.build_request(
-                column=column,
-                recent_issues=recent_issues,
-                research_summary=research_summary,
-            )
-            resp = self.planner.chat(req)
-            if resp.raw_error:
-                raise RuntimeError(f"生成选题失败：{resp.raw_error}")
-            candidates = self.parse_candidates(
-                resp.text,
-                require_evidence=self.require_research,
-                allowed_evidence_ids=allowed_evidence_ids,
-            )
+            candidates = None
+            parse_error = None
+            feedback = None
+            for _ in range(3):
+                req = self.build_request(
+                    column=column,
+                    recent_issues=recent_issues,
+                    research_summary=research_summary,
+                    feedback=feedback,
+                )
+                resp = self.planner.chat(req)
+                if resp.raw_error:
+                    raise RuntimeError(f"生成选题失败：{resp.raw_error}")
+                try:
+                    candidates = self.parse_candidates(
+                        resp.text,
+                        require_evidence=self.require_research,
+                        allowed_evidence_ids=allowed_evidence_ids,
+                    )
+                    parse_error = None
+                    break
+                except ValueError as exc:
+                    parse_error = exc
+                    if allowed_evidence_ids:
+                        feedback = (
+                            f"{exc}；可引用的来源 ID 仅有："
+                            + "、".join(sorted(allowed_evidence_ids))
+                        )
+                    else:
+                        feedback = str(exc)
+            if parse_error is not None or candidates is None:
+                raise parse_error or RuntimeError("生成选题失败：重试耗尽")
             cache.write_text(json.dumps(candidates, ensure_ascii=False, indent=2), encoding="utf-8")
         choice_raw = self.user.choose_topic(candidates, issue_dir=issue_dir)
         if type(choice_raw) is int:

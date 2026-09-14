@@ -69,8 +69,9 @@ class Orchestrator:
         deep_search_unique_max: int = 30,
         site_depth_max: int = 2,
         topic_research_rounds_max: int = 2,
-        topic_research_sources_max_per_round: int = 6,
+        topic_research_sources_max_per_round: int = 24,
         topic_research_min_valid_channels: int = 2,
+        topic_research_min_sources_total: int = 40,
     ) -> None:
         self.issue_id = issue_id
         self.issue_dir = issue_dir
@@ -148,6 +149,14 @@ class Orchestrator:
             self._selected_topic()  # 恢复也必须有明确选题，禁止栏目名兜底。
 
         # 1) 选题前研究：两轮各调用 Tavily / Brave / Bing，再用 Scrapy 抓取。
+        #    进入选题阶段前先检查已有研究是否达到去重来源下限，不达标自动打回重跑。
+        if state.stage == "topic_selection" and self.topic_research_stage is not None \
+                and not self.topic_research_stage.meets_source_floor(self.issue_dir):
+            print("已检索来源不足下限，自动重跑选题研究…", flush=True)
+            state = mark_rerun(state, "topic_research")
+            self.topic_research_stage.discard(self.issue_dir)
+            self.save_state(state)
+
         if state.stage == "topic_research":
             if self.topic_research_stage is None:
                 raise RuntimeError("缺少 Scrapy 选题研究客户端，不能生成候选选题")
@@ -424,7 +433,7 @@ def build_orchestrator(issue_root: str | Path, *, user=None) -> Orchestrator:
         user=user or CliUser(),
         crawler=ScrapyCrawler(
             depth_limit=pipe.site_depth_max if pipe else 1,
-            max_pages=pipe.scrapy_max_pages if pipe else 36,
+            max_pages=pipe.scrapy_max_pages if pipe else 96,
         ),
         column=_parse_column(issue_id),
         revision_rounds_max=pipe.revision_rounds_max if pipe else 2,
@@ -432,8 +441,9 @@ def build_orchestrator(issue_root: str | Path, *, user=None) -> Orchestrator:
         deep_search_unique_max=pipe.deep_search_unique_sources_max if pipe else 30,
         site_depth_max=pipe.site_depth_max if pipe else 2,
         topic_research_rounds_max=pipe.topic_research_rounds_max if pipe else 2,
-        topic_research_sources_max_per_round=pipe.topic_research_sources_max_per_round if pipe else 6,
+        topic_research_sources_max_per_round=pipe.topic_research_sources_max_per_round if pipe else 24,
         topic_research_min_valid_channels=pipe.topic_research_min_valid_channels if pipe else 2,
+        topic_research_min_sources_total=pipe.topic_research_min_sources_total if pipe else 40,
     )
 
 

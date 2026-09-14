@@ -167,7 +167,7 @@ class ScrapyCrawler:
         self,
         *,
         depth_limit: int = 1,
-        max_pages: int = 36,
+        max_pages: int = 96,
         max_links_per_page: int = 4,
         download_timeout: int = 20,
         obey_robots_txt: bool = True,
@@ -221,6 +221,11 @@ class ScrapyCrawler:
             "AUTOTHROTTLE_ENABLED": True,
             "AUTOTHROTTLE_START_DELAY": 0.5,
             "AUTOTHROTTLE_MAX_DELAY": 8.0,
+            # BFS 排序：先抓所有 seed 根页，再抓子页，避免深度子页抢光
+            # CLOSESPIDER_PAGECOUNT 预算导致后续 seed 整批未访问。
+            "DEPTH_PRIORITY": 1,
+            "SCHEDULER_DISK_QUEUE": "scrapy.squeues.PickleFifoDiskQueue",
+            "SCHEDULER_MEMORY_QUEUE": "scrapy.squeues.FifoMemoryQueue",
             "FEEDS": {
                 str(feed_path): {
                     "format": "jsonlines",

@@ -100,7 +100,7 @@ class BingPublicSearch:
         if len(self._hits) >= self._config.rate_limit_per_minute:
             self._sleeper(max(0.0, 60.0 - (now - self._hits[0])))
 
-    def search(self, query: str, *, round_idx: int = 0, max_results: int = 10) -> list[SearchSource]:
+    def search(self, query: str, *, round_idx: int = 0, max_results: int = 20) -> list[SearchSource]:
         self._throttle()
         self._hits.append(self._clock())
         url = self._config.endpoint + "?" + urllib.parse.urlencode({"q": query, "count": max_results})
