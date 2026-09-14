@@ -8,6 +8,7 @@
 ## 字段约定
 
 - `*_env` 字段值是环境变量名，不是真实密钥；运行时从环境或 `凭据/.env` 读取。
+- `[search.reference.ima]` 的 `knowledge_base_name` 固定为本栏目的参考库；`max_results` 是每次关键词检索的命中上限，不是全库下载数量。
 - 模型岗位在本期开始时冻结到 `本期.toml`；本期运行期间不得换模型。
 - `transport = "stdio"` 必须配套 `command` + `args`；`transport = "http"` 必须配套 `url`，可选 `api_key_env`。
 - `[review]` / `[task]` / `[pipeline].auth_failure_abort` 禁止项必须保持 `true`。

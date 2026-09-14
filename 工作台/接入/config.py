@@ -49,6 +49,19 @@ class PublicSearchConfig:
 
 
 @dataclass(frozen=True)
+class IMAKnowledgeBaseConfig:
+    """IMA 知识库参考资料来源配置。"""
+
+    base_url: str
+    client_id_env: str
+    api_key_env: str
+    knowledge_base_name: str
+    knowledge_base_id_env: str
+    max_results: int
+    timeout_seconds: int
+
+
+@dataclass(frozen=True)
 class PipelineConfig:
     deep_search_rounds_max: int
     deep_search_unique_sources_max: int
@@ -86,6 +99,7 @@ class WorkbenchConfig:
     tavily: MCPStdioConfig | None = None
     brave: MCPHttpConfig | None = None
     bing: PublicSearchConfig | None = None
+    ima: IMAKnowledgeBaseConfig | None = None
     pipeline: PipelineConfig | None = None
     review: ReviewConfig | None = None
     task: TaskConfig | None = None
@@ -157,6 +171,34 @@ def _parse_bing(raw: dict[str, Any]) -> PublicSearchConfig:
         endpoint=str(raw["endpoint"]),
         user_agent=str(raw["user_agent"]),
         rate_limit_per_minute=int(raw["rate_limit_per_minute"]),
+    )
+
+
+def _parse_ima(raw: dict[str, Any], path: Path) -> IMAKnowledgeBaseConfig:
+    required = (
+        "base_url",
+        "client_id_env",
+        "api_key_env",
+        "knowledge_base_name",
+        "knowledge_base_id_env",
+    )
+    for key in required:
+        if not str(raw.get(key, "")).strip():
+            raise ConfigError(f"{path}：[search.reference.ima] 缺少必需字段 `{key}`")
+    max_results = int(raw.get("max_results", 10))
+    timeout_seconds = int(raw.get("timeout_seconds", 20))
+    if not 1 <= max_results <= 50:
+        raise ConfigError("[search.reference.ima] max_results 必须在 1–50 之间")
+    if timeout_seconds < 1:
+        raise ConfigError("[search.reference.ima] timeout_seconds 必须大于 0")
+    return IMAKnowledgeBaseConfig(
+        base_url=str(raw["base_url"]).rstrip("/"),
+        client_id_env=str(raw["client_id_env"]),
+        api_key_env=str(raw["api_key_env"]),
+        knowledge_base_name=str(raw["knowledge_base_name"]).strip(),
+        knowledge_base_id_env=str(raw["knowledge_base_id_env"]),
+        max_results=max_results,
+        timeout_seconds=timeout_seconds,
     )
 
 
@@ -306,10 +348,12 @@ def _parse_workbench(raw: dict[str, Any], path: Path) -> WorkbenchConfig:
     tavily_raw = raw.get("search", {}).get("mcp", {}).get("tavily")
     brave_raw = raw.get("search", {}).get("mcp", {}).get("brave")
     bing_raw = raw.get("search", {}).get("public", {}).get("bing")
+    ima_raw = raw.get("search", {}).get("reference", {}).get("ima")
 
     tavily = _parse_tavily(tavily_raw) if tavily_raw else None
     brave = _parse_brave(brave_raw) if brave_raw else None
     bing = _parse_bing(bing_raw) if bing_raw else None
+    ima = _parse_ima(ima_raw, path) if ima_raw else None
 
     pipeline = _parse_pipeline(raw["pipeline"]) if "pipeline" in raw else None
     review = _parse_review(raw["review"]) if "review" in raw else None
@@ -324,6 +368,7 @@ def _parse_workbench(raw: dict[str, Any], path: Path) -> WorkbenchConfig:
         tavily=tavily,
         brave=brave,
         bing=bing,
+        ima=ima,
         pipeline=pipeline,
         review=review,
         task=task,

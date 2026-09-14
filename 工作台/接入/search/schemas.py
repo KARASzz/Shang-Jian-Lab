@@ -20,4 +20,4 @@ class SearchSource:
     locator: str | None
     body_path: str | None
     status: Literal["ok", "paywall", "captcha", "fetch_failed", "pdf_unparsed"]
-    channel: Literal["tavily", "brave", "bing"]
+    channel: Literal["tavily", "brave", "bing", "ima"]

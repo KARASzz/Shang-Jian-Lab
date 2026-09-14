@@ -64,6 +64,15 @@ SAMPLE_TOML = textwrap.dedent(
     user_agent = "ua"
     rate_limit_per_minute = 20
 
+    [search.reference.ima]
+    base_url = "https://ima.qq.com"
+    client_id_env = "IMA_OPENAPI_CLIENTID"
+    api_key_env = "IMA_OPENAPI_APIKEY"
+    knowledge_base_name = "熵减进化室自媒体发稿参考库"
+    knowledge_base_id_env = "IMA_KNOWLEDGE_BASE_ID"
+    max_results = 10
+    timeout_seconds = 20
+
     [pipeline]
     deep_search_rounds_max = 2
     deep_search_unique_sources_max = 30
@@ -102,6 +111,10 @@ class LoadDefaultConfigTests(unittest.TestCase):
         self.assertIsNotNone(cfg.brave)
         self.assertEqual(cfg.brave.url, "http://localhost:8080/mcp")  # type: ignore[union-attr]
         self.assertEqual(cfg.bing.rate_limit_per_minute, 20)  # type: ignore[union-attr]
+        self.assertIsNotNone(cfg.ima)
+        self.assertEqual(  # type: ignore[union-attr]
+            cfg.ima.knowledge_base_name, "熵减进化室自媒体发稿参考库"
+        )
         self.assertTrue(cfg.pipeline.auth_failure_abort)  # type: ignore[union-attr]
         self.assertTrue(cfg.review.block_fabricated_citation)  # type: ignore[union-attr]
 
@@ -112,6 +125,9 @@ class LoadDefaultConfigTests(unittest.TestCase):
             cfg = load_local_config(repo_root=d, path=str(p))
             self.assertEqual(cfg.models["planner"].request_model, "MiniMax-M3")
             self.assertEqual(cfg.tavily.command, "npx")  # type: ignore[union-attr]
+            self.assertEqual(  # type: ignore[union-attr]
+                cfg.ima.knowledge_base_name, "熵减进化室自媒体发稿参考库"
+            )
 
     def test_local_config_missing_raises(self) -> None:
         with tempfile.TemporaryDirectory() as d:

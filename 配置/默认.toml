@@ -52,6 +52,15 @@ endpoint = "https://www.bing.com/search"
 user_agent = "Mozilla/5.0 (workbench; +local)"
 rate_limit_per_minute = 20
 
+[search.reference.ima]
+base_url = "https://ima.qq.com"
+client_id_env = "IMA_OPENAPI_CLIENTID"
+api_key_env = "IMA_OPENAPI_APIKEY"
+knowledge_base_name = "熵减进化室自媒体发稿参考库"
+knowledge_base_id_env = "IMA_KNOWLEDGE_BASE_ID"
+max_results = 10
+timeout_seconds = 20
+
 # ===== 流水线参数 =====
 [pipeline]
 deep_search_rounds_max = 2

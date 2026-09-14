@@ -10,7 +10,7 @@
 |---|---|
 | `state.py` | `TaskState` dataclass + 阶段推进纯函数（与接口规范 §4 字面量一致） |
 | `checkpoint.py` | checkpoint.json 原子写（`.tmp` + `os.replace`，失败清理）、版本一致性校验 |
-| `research.py` | 选题前研究：两轮各调用 Tavily / Brave / Bing，再由 Scrapy 抓取正文 |
+| `research.py` | 选题前研究：两轮各调用 Tavily / Brave / Bing，并定向检索 IMA 参考库，再由 Scrapy 抓取公开 URL 正文 |
 | `topic_selection.py` | 选题：仅基于两轮研究资料调 planner 拿 5 候选 → 用户选/自选 |
 | `evidence.py` | 两轮检索并由 Scrapy 抓正文：调 search + crawler → `资料/证据清单.json` |
 | `planning.py` | 策划：调 planner 出三角度策划.md |
@@ -24,7 +24,7 @@
 
 ## 阶段顺序
 
-`topic_research → topic_selection → evidence_collection → planning → draft_1 → draft_2 → draft_3 → review_1 → revise_1 → review_2 → revise_2 → awaiting_human | finalizing`，其中 `topic_research` 和 `evidence_collection` 都必须完成搜索后的网页抓取；`finalizing` 仅在审稿通过且 ≤ 2 轮返修时由流水线写入；`archived` 由用户在 6 号菜单触发，本流水线不实现。
+`topic_research → topic_selection → evidence_collection → planning → draft_1 → draft_2 → draft_3 → review_1 → revise_1 → review_2 → revise_2 → awaiting_human | finalizing`，其中 `topic_research` 和 `evidence_collection` 都必须完成搜索后的网页抓取；IMA 只处理关键词命中的条目，不做全库下载；`finalizing` 仅在审稿通过且 ≤ 2 轮返修时由流水线写入；`archived` 由用户在 6 号菜单触发，本流水线不实现。
 
 ## 依赖
 

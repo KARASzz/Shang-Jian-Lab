@@ -5,6 +5,7 @@ from __future__ import annotations
 from 工作台.接入.config import WorkbenchConfig
 from 工作台.接入.search.bing_public import BingPublicSearch
 from 工作台.接入.search.brave_mcp import BraveMCPClient
+from 工作台.接入.search.ima_kb import IMAKnowledgeBaseSearch
 from 工作台.接入.search.schemas import SearchSource
 from 工作台.接入.search.tavily_mcp import TavilyMCPClient
 
@@ -16,6 +17,7 @@ class CompositeSearch:
         self._tavily = TavilyMCPClient(config.tavily) if config.tavily else None
         self._brave = BraveMCPClient(config.brave) if config.brave else None
         self._bing = BingPublicSearch(config.bing) if config.bing else None
+        self._ima = IMAKnowledgeBaseSearch(config.ima) if config.ima else None
 
     def search(self, query: str, *, round_idx: int) -> list[SearchSource]:
         out: list[SearchSource] = []
@@ -24,6 +26,7 @@ class CompositeSearch:
             ("tavily", self._tavily),
             ("brave", self._brave),
             ("bing", self._bing),
+            ("ima", self._ima),
         ):
             if client is None:
                 batch = [self._failure(channel, query, round_idx, "未配置")]
@@ -62,7 +65,14 @@ class CompositeSearch:
             "tavily": self._tavily,
             "brave": self._brave,
             "bing": self._bing,
+            "ima": self._ima,
         }.get(source.channel)
         if channel is None:
             return source
         return channel.fetch(source)
+
+    def set_output_dir(self, output_dir: str) -> None:
+        """为支持正文落盘的参考来源设置当期资料目录。"""
+
+        if self._ima is not None:
+            self._ima.set_output_dir(output_dir)

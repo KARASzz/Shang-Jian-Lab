@@ -22,7 +22,7 @@ REQUIRED_FIELDS = (
 )
 
 STATUS_VALUES = {"ok", "paywall", "captcha", "fetch_failed", "pdf_unparsed"}
-CHANNEL_VALUES = {"tavily", "brave", "bing"}
+CHANNEL_VALUES = {"tavily", "brave", "bing", "ima"}
 
 
 class SearchSourceSchemaTests(unittest.TestCase):

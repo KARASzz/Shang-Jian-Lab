@@ -77,12 +77,14 @@ class EvidenceCollectionStage:
         return "\n".join(body) + "\n"
 
     def run(self, state, *, issue_dir: str, topic: str, anchor_reports: list[str]):
+        material_dir = Path(issue_dir) / "资料"
+        material_dir.mkdir(parents=True, exist_ok=True)
+        set_output_dir = getattr(self.search, "set_output_dir", None)
+        if callable(set_output_dir):
+            set_output_dir(str(material_dir))
         sources = self.collect(topic, anchor_reports=anchor_reports)
         if len(sources) > self.unique_max:
             sources = sources[: self.unique_max]
-
-        material_dir = Path(issue_dir) / "资料"
-        material_dir.mkdir(parents=True, exist_ok=True)
 
         if self.crawler is not None:
             seeds = [source for source in sources if source.status == "ok" and source.url]
@@ -98,10 +100,10 @@ class EvidenceCollectionStage:
                 source for source in sources
                 if (
                     source.status == "ok"
-                    and source.url
                     and source.body_path
                     and Path(source.body_path).is_file()
                     and Path(source.body_path).stat().st_size > 0
+                    and (source.url or source.channel == "ima")
                 )
             ]
             print(
@@ -111,7 +113,13 @@ class EvidenceCollectionStage:
         else:
             if self.require_crawl:
                 raise RuntimeError("证据阶段缺少 Scrapy crawler，已停止")
-            usable_sources = [source for source in sources if source.status == "ok" and source.url]
+            usable_sources = [
+                source
+                for source in sources
+                if source.status == "ok"
+                and (source.url or source.channel == "ima")
+                and (source.excerpt.strip() or source.channel == "ima")
+            ]
 
         (material_dir / "锚点报告-版本核验.md").write_text(
             self.render_anchor_md(anchor_reports),

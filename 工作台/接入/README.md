@@ -19,6 +19,7 @@
     ├── __init__.py
     ├── bing_public.py     # Bing 公开搜索 + 限流
     ├── brave_mcp.py       # Brave MCP / Search API
+    ├── ima_kb.py          # IMA 知识库定向检索与命中正文
     ├── schemas.py         # SearchSource（接口规范 §2）
     ├── scrapy_crawler.py  # 搜索结果 URL 的有限深度正文抓取
     └── tavily_mcp.py      # Tavily Search API
@@ -38,7 +39,9 @@
 ## 搜索与抓取分工
 
 - Tavily、Brave、Bing 负责发现候选 URL；每轮各调用一次。
+- IMA 知识库按配置的知识库名称和当前选题关键词定向检索；每次最多取 `max_results` 条命中，不遍历或下载全库。
 - `ScrapyCrawler` 负责下载和解析这些 URL；选题研究正文写入当期 `选题/研究/抓取/`，选题后的证据正文写入 `资料/正文/`。
+- IMA 命中的可访问正文写入当期 `选题/研究/抓取/IMA正文/` 或 `资料/IMA正文/`，不交给 Scrapy 重复抓取。
 - 选题研究严格执行两轮；证据阶段也必须抓取正文。Scrapy 未安装、三渠道调用未完成或有效渠道不足时停止，不生成 5 个候选或继续写稿。
 
 ## 运行
@@ -63,12 +66,14 @@ python -m unittest discover -s 测试/接入 -v
    GLM_BASE_URL / GLM_API_KEY
    TAVILY_API_KEY
    BRAVE_API_KEY
+   IMA_OPENAPI_CLIENTID / IMA_OPENAPI_APIKEY
    ```
 
 3. `配置/本地.toml` 中搜索连接字段：
 
    - `[search.mcp.tavily]`：读取 `env.TAVILY_API_KEY` 指向的环境变量，直接调用 Tavily Search API。
    - `[search.mcp.brave]`：先尝试 `url` 的 MCP 端点；连接失败时用 `api_key_env` 调用 Brave Search API。
+   - `[search.reference.ima]`：按 `knowledge_base_name` 精确定位 IMA 知识库，再调用 `search_knowledge`；可通过 `IMA_KNOWLEDGE_BASE_ID` 跳过名称解析。正文只对命中条目调用，不做全量下载。
 
 4. 真实 base URL、key、MCP 启动参数**绝不写入仓库**；日志脱敏，不打印也不返回真实 key。
 

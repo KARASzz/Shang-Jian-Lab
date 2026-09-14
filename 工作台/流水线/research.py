@@ -92,7 +92,9 @@ class TopicResearchStage:
         valid_channels = {
             source.channel
             for source in sources
-            if source.status == "ok" and source.url and source.excerpt.strip()
+            if source.status == "ok"
+            and (source.url or source.channel == "ima")
+            and source.excerpt.strip()
         }
         if len(valid_channels) < self.min_valid_channels_per_round:
             raise RuntimeError(
@@ -139,6 +141,9 @@ class TopicResearchStage:
     ):
         research_dir = Path(issue_dir) / "选题" / "研究"
         research_dir.mkdir(parents=True, exist_ok=True)
+        set_output_dir = getattr(self.search, "set_output_dir", None)
+        if callable(set_output_dir):
+            set_output_dir(str(research_dir / "抓取"))
 
         payloads: list[dict] = []
         all_sources: list[SearchSource] = []
@@ -166,13 +171,19 @@ class TopicResearchStage:
                 query = f"{query} 排除已用主题数量 {len(recent_issues)}"
             print(f"正在进行选题研究第 {round_idx + 1}/2 轮：搜索 Tavily、Brave、Bing…", flush=True)
             searched = self.search.search(query, round_idx=round_idx)
+            # IMA 参考资料没有公开 URL；先由来源客户端取正文并落盘，公开 URL
+            # 仍交给后面的 Scrapy 统一抓取。
+            searched = [self.search.fetch(source) for source in searched]
             self._validate_attempts(round_idx, searched)
             seeds = self._select_seeds(searched)
             # 保留每个失败渠道的真实记录；成功结果只抓取受上限约束的种子 URL。
             seed_ids = {source.id for source in seeds}
             round_sources = seeds + [
                 source for source in searched
-                if source.status != "ok" and source.id not in seed_ids
+                if (
+                    source.id not in seed_ids
+                    and (source.status != "ok" or source.channel == "ima")
+                )
             ]
             all_sources.extend(round_sources)
             prior_titles.extend(source.title for source in searched if source.title)
