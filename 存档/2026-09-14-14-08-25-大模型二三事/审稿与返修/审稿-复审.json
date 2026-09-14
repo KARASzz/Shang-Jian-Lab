@@ -1,0 +1,19 @@
+{
+  "round": 2,
+  "verdicts": [
+    {
+      "draft_version": "revise_1",
+      "issues": [],
+      "score": 88.0,
+      "recommendation": "draft_2",
+      "pass_": true
+    }
+  ],
+  "recommendation": {
+    "draft_version": "revise_1",
+    "issues": [],
+    "score": 88.0,
+    "recommendation": "draft_2",
+    "pass_": true
+  }
+}

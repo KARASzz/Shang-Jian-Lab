@@ -56,7 +56,12 @@ rate_limit_per_minute = 20
 base_url = "https://ima.qq.com"
 client_id_env = "IMA_OPENAPI_CLIENTID"
 api_key_env = "IMA_OPENAPI_APIKEY"
-knowledge_base_name = "熵减进化室自媒体发稿参考库"
+knowledge_base_names = [
+  "熵减进化室自媒体发稿参考库",
+  "每日AI治理研究简报",
+  "每日跟踪国内AI产业动态简报",
+  "每日高价值情报简报",
+]
 knowledge_base_id_env = "IMA_KNOWLEDGE_BASE_ID"
 max_results = 10
 timeout_seconds = 20

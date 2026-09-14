@@ -217,6 +217,26 @@ class TopicResearchFloorTests(unittest.TestCase):
             self.assertTrue(stage.meets_source_floor(td))
 
 
+class ResearchSummaryRedactionTests(unittest.TestCase):
+    """研究摘要不得向 planner 暴露抓取失败来源的编号。"""
+
+    def test_failed_sources_have_no_citable_id_in_summary(self) -> None:
+        payloads = [{
+            "round": 1,
+            "query": "q",
+            "sources": [
+                {"id": "brave-0-0", "channel": "brave", "status": "ok",
+                 "title": "好来源", "url": "https://a.test/1", "excerpt": "正文"},
+                {"id": "brave-0-9", "channel": "brave", "status": "fetch_failed",
+                 "title": "坏来源", "url": "https://a.test/2", "excerpt": ""},
+            ],
+        }]
+        summary = TopicResearchStage._summary(payloads)
+        self.assertIn("brave-0-0", summary)
+        self.assertNotIn("brave-0-9", summary)
+        self.assertIn("不可引用", summary)
+
+
 class TopicSelectionRetryTests(unittest.TestCase):
     """planner 引用未验证的证据 ID 时，阶段应自动纠错重试而非直接崩溃。"""
 

@@ -55,15 +55,21 @@ class CompositeSearch:
             ("bing", self._bing),
             ("ima", self._ima),
         ):
+            reason: str | None = "未配置" if client is None else None
             if client is None:
-                batch = [self._failure(channel, query, round_idx, "未配置")]
+                batch = [self._failure(channel, query, round_idx, reason or "未配置")]
             else:
                 try:
                     batch = client.search(query, round_idx=round_idx)
-                except Exception:  # noqa: BLE001 - 记录真实渠道失败，交由证据阶段拦截
-                    batch = [self._failure(channel, query, round_idx, "调用失败")]
+                except Exception as exc:  # noqa: BLE001 - 记录真实渠道失败，交由证据阶段拦截
+                    reason = f"调用失败（{exc}）"
+                    batch = [self._failure(channel, query, round_idx, reason)]
                 if not batch:
-                    batch = [self._failure(channel, query, round_idx, "未返回可用结果")]
+                    reason = "未返回可用结果"
+                    batch = [self._failure(channel, query, round_idx, reason)]
+            if reason is not None:
+                # 渠道参与但零命中必须可见，否则看起来像"没检索"。
+                print(f"提示：{channel} 本轮零命中（{reason}）", flush=True)
             for src in batch:
                 if src.id in seen:
                     continue

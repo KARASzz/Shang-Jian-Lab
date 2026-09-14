@@ -50,7 +50,7 @@ class EvidenceCollectionStage:
             if len(seen) >= self.unique_max:
                 break
             print(
-                f"正在检索第 {r + 1}/{self.rounds_max} 轮证据：Tavily、Brave、Bing…",
+                f"正在检索第 {r + 1}/{self.rounds_max} 轮证据：Tavily、Brave、Bing、IMA 知识库…",
                 flush=True,
             )
             batch = self.search.search(

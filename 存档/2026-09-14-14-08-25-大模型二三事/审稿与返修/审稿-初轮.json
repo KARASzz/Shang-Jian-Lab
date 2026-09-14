@@ -1,0 +1,101 @@
+{
+  "round": 1,
+  "verdicts": [
+    {
+      "draft_version": "draft_1",
+      "issues": [
+        {
+          "severity": "block",
+          "category": "unsupported_key_fact",
+          "location": "全文",
+          "description": "审稿输出无法解析，按阻断处理",
+          "evidence_source_ids": [],
+          "suggestion": null
+        }
+      ],
+      "score": 0.0,
+      "recommendation": "draft_1",
+      "pass_": false
+    },
+    {
+      "draft_version": "draft_2",
+      "issues": [
+        {
+          "severity": "block",
+          "category": "unsupported_key_fact",
+          "location": "第 1 段",
+          "description": "文章核心论点“纯文本 LLM 被迫‘降级’为世界模型的一个子系统”被陈述为行业既成事实，但提供的证据仅引用了 Yann LeCun 的 JEPA 架构提案 `[brave-0-14]`。研究提案或理论架构并不等同于全行业的产品现状或共识。将单一学派的理论愿景呈现为全行业的技术降级事实，违反了“禁止把能力演示/研究愿景写成全行业事实”的审稿侧重。",
+          "evidence_source_ids": [],
+          "suggestion": "修改表述以区分“学术观点”与“产业现状”。建议改为：“在 Yann LeCun 等学者提出的架构蓝图中，LLM 正被重新定义为世界模型的语义接口，而非独立的核心引擎。”"
+        },
+        {
+          "severity": "major",
+          "category": "unsupported_key_fact",
+          "location": "第 3 段",
+          "description": "文章断言“纯文本训练从未覆盖过这些分布”。这是一个绝对化的表述，缺乏严谨性。文本数据中包含大量物理规律的描述（如教科书、物理模拟代码），模型在统计层面确实“覆盖”了相关语义分布，只是缺乏物理世界的“体验”或“接地”。",
+          "evidence_source_ids": [],
+          "suggestion": "修正为“纯文本训练无法建立物理世界的因果体验”或“缺乏物理交互的反馈闭环”，避免使用“从未覆盖分布”这种易引起歧义的绝对化表述。"
+        },
+        {
+          "severity": "minor",
+          "category": "logic_flaw",
+          "location": "第 2 段",
+          "description": "在倒水任务的例子中，称“LLM 算不出来...关节需要弯曲多少度”。实际上，LLM 可以输出数值，只是无法保证在物理世界中正确。这种表述混淆了“计算能力”与“物理接地能力”。",
+          "evidence_source_ids": [],
+          "suggestion": "改为“LLM 无法计算出符合物理现实约束的准确参数”或“缺乏物理反馈的 LLM 无法确保动作的有效性”。"
+        }
+      ],
+      "score": 65.0,
+      "recommendation": "draft_2",
+      "pass_": false
+    },
+    {
+      "draft_version": "draft_3",
+      "issues": [
+        {
+          "severity": "block",
+          "category": "unsupported_key_fact",
+          "location": "全文",
+          "description": "审稿输出无法解析，按阻断处理",
+          "evidence_source_ids": [],
+          "suggestion": null
+        }
+      ],
+      "score": 0.0,
+      "recommendation": "draft_1",
+      "pass_": false
+    }
+  ],
+  "recommendation": {
+    "draft_version": "draft_2",
+    "issues": [
+      {
+        "severity": "block",
+        "category": "unsupported_key_fact",
+        "location": "第 1 段",
+        "description": "文章核心论点“纯文本 LLM 被迫‘降级’为世界模型的一个子系统”被陈述为行业既成事实，但提供的证据仅引用了 Yann LeCun 的 JEPA 架构提案 `[brave-0-14]`。研究提案或理论架构并不等同于全行业的产品现状或共识。将单一学派的理论愿景呈现为全行业的技术降级事实，违反了“禁止把能力演示/研究愿景写成全行业事实”的审稿侧重。",
+        "evidence_source_ids": [],
+        "suggestion": "修改表述以区分“学术观点”与“产业现状”。建议改为：“在 Yann LeCun 等学者提出的架构蓝图中，LLM 正被重新定义为世界模型的语义接口，而非独立的核心引擎。”"
+      },
+      {
+        "severity": "major",
+        "category": "unsupported_key_fact",
+        "location": "第 3 段",
+        "description": "文章断言“纯文本训练从未覆盖过这些分布”。这是一个绝对化的表述，缺乏严谨性。文本数据中包含大量物理规律的描述（如教科书、物理模拟代码），模型在统计层面确实“覆盖”了相关语义分布，只是缺乏物理世界的“体验”或“接地”。",
+        "evidence_source_ids": [],
+        "suggestion": "修正为“纯文本训练无法建立物理世界的因果体验”或“缺乏物理交互的反馈闭环”，避免使用“从未覆盖分布”这种易引起歧义的绝对化表述。"
+      },
+      {
+        "severity": "minor",
+        "category": "logic_flaw",
+        "location": "第 2 段",
+        "description": "在倒水任务的例子中，称“LLM 算不出来...关节需要弯曲多少度”。实际上，LLM 可以输出数值，只是无法保证在物理世界中正确。这种表述混淆了“计算能力”与“物理接地能力”。",
+        "evidence_source_ids": [],
+        "suggestion": "改为“LLM 无法计算出符合物理现实约束的准确参数”或“缺乏物理反馈的 LLM 无法确保动作的有效性”。"
+      }
+    ],
+    "score": 65.0,
+    "recommendation": "draft_2",
+    "pass_": false
+  }
+}

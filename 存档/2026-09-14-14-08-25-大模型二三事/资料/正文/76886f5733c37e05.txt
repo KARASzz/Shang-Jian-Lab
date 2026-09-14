@@ -1,0 +1,1 @@
+window.TBCONFIG = {"tbs":null} || {}; !function(){"use strict";var t;window.radar&&((t=document.createElement("script"))["async"]=!0,t.src=("http:"===window.location.protocol?"http:":"https:")+"//tb3.bdstatic.com/radar-sdk/prod/js/3.0.0/es5/radar.min.js?t="+(new Date).getTime(),document.getElementsByTagName("body")[0].appendChild(t))}();

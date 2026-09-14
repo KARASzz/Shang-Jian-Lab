@@ -130,5 +130,115 @@ class IMAKnowledgeBaseSearchTests(unittest.TestCase):
         self.assertEqual(opener.calls[0][1]["query"], "熵减进化室自媒体发稿参考库")
 
 
+class MultiKBSearchTests(unittest.TestCase):
+    """多检索库轮转合并：各库来源均匀进入候选，publisher 标明来源库。"""
+
+    def setUp(self) -> None:
+        self._old = {k: os.environ.get(k) for k in ("TEST_IMA_CLIENT", "TEST_IMA_KEY")}
+        os.environ["TEST_IMA_CLIENT"] = "client-for-test"
+        os.environ["TEST_IMA_KEY"] = "key-for-test"
+
+    def tearDown(self) -> None:
+        for key, old in self._old.items():
+            if old is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = old
+
+    def test_search_merges_multiple_knowledge_bases(self) -> None:
+        config = IMAKnowledgeBaseConfig(
+            base_url="https://ima.qq.com",
+            client_id_env="TEST_IMA_CLIENT",
+            api_key_env="TEST_IMA_KEY",
+            knowledge_base_name="库A",
+            knowledge_base_id_env="TEST_IMA_KB_ID",
+            max_results=4,
+            timeout_seconds=20,
+            knowledge_base_names=("库A", "库B"),
+        )
+
+        class _MultiOpener:
+            def __init__(self) -> None:
+                self.calls: list[tuple[str, dict]] = []
+                self.responses = [
+                    _Response({"code": 0, "data": {"info_list": [
+                        {"kb_id": "kb-a", "kb_name": "库A"}], "is_end": True}}),
+                    _Response({"code": 0, "data": {"info_list": [
+                        {"kb_id": "kb-b", "kb_name": "库B"}], "is_end": True}}),
+                    _Response({"code": 0, "data": {"info_list": [
+                        {"media_id": "m-a1", "title": "A库文章1"},
+                        {"media_id": "m-a2", "title": "A库文章2"},
+                    ], "is_end": True}}),
+                    _Response({"code": 0, "data": {"info_list": [
+                        {"media_id": "m-b1", "title": "B库文章1"},
+                    ], "is_end": True}}),
+                ]
+
+            def __call__(self):
+                return self
+
+            def open(self, request, *, timeout: int):
+                payload = json.loads(request.data.decode("utf-8"))
+                self.calls.append((request.full_url, payload))
+                return self.responses.pop(0)
+
+        opener = _MultiOpener()
+        client = IMAKnowledgeBaseSearch(config, http_opener=opener)
+        sources = client.search("关键词", round_idx=0, max_results=3)
+        self.assertEqual(len(sources), 3)
+        publishers = [s.publisher or "" for s in sources]
+        self.assertIn("库A", publishers[0])
+        self.assertIn("库B", publishers[1])
+        self.assertIn("库A", publishers[2])
+        # 每个库单独调用一次 search_knowledge
+        kb_calls = [c for c in opener.calls if c[0].endswith("search_knowledge")]
+        self.assertEqual(len(kb_calls), 2)
+        self.assertEqual(kb_calls[0][1]["knowledge_base_id"], "kb-a")
+        self.assertEqual(kb_calls[1][1]["knowledge_base_id"], "kb-b")
+
+    def test_missing_kb_warns_but_others_still_work(self) -> None:
+        import io
+        import contextlib
+
+        config = IMAKnowledgeBaseConfig(
+            base_url="https://ima.qq.com",
+            client_id_env="TEST_IMA_CLIENT",
+            api_key_env="TEST_IMA_KEY",
+            knowledge_base_name="库A",
+            knowledge_base_id_env="TEST_IMA_KB_ID",
+            max_results=2,
+            timeout_seconds=20,
+            knowledge_base_names=("库A", "不存在的库"),
+        )
+
+        class _MissingOpener:
+            def __init__(self) -> None:
+                self.calls: list[tuple[str, dict]] = []
+                self.responses = [
+                    _Response({"code": 0, "data": {"info_list": [
+                        {"kb_id": "kb-a", "kb_name": "库A"}], "is_end": True}}),
+                    _Response({"code": 0, "data": {"info_list": [], "is_end": True}}),
+                    _Response({"code": 0, "data": {"info_list": [
+                        {"media_id": "m-a1", "title": "A库文章1"},
+                    ], "is_end": True}}),
+                ]
+
+            def __call__(self):
+                return self
+
+            def open(self, request, *, timeout: int):
+                payload = json.loads(request.data.decode("utf-8"))
+                self.calls.append((request.full_url, payload))
+                return self.responses.pop(0)
+
+        opener = _MissingOpener()
+        client = IMAKnowledgeBaseSearch(config, http_opener=opener)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            sources = client.search("关键词", round_idx=0)
+        self.assertEqual(len(sources), 1)
+        self.assertIn("IMA 检索库「不存在的库」不可用", buf.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()

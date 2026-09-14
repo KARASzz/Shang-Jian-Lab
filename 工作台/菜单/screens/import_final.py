@@ -57,6 +57,14 @@ def _dest_dir(issue_root: Path) -> Path:
     return paths.ensure_dir(issue_root / DEST_SUBDIR)
 
 
+# writer 返修时爱把版本标签写进正文标题（如"返修稿 2：标题"），
+# 定稿文件名的书名号里只能有正式标题，这里统一剥离。
+_VERSION_LABEL_RE = re.compile(
+    r"^(?:返修稿|修订稿|终稿|定稿|初稿|手改稿|推荐稿|draft)\s*\d*\s*[:：]\s*",
+    re.IGNORECASE,
+)
+
+
 def _clean_title(raw: str) -> str:
     """清理 Markdown 标题，使其可安全放入文件名。"""
 
@@ -64,6 +72,11 @@ def _clean_title(raw: str) -> str:
     title = re.sub(r"[*_`~]", "", title)
     title = re.sub(r"[\\/\x00-\x1f\x7f]", "-", title)
     title = re.sub(r"\s+", " ", title).strip(" .")
+    for _ in range(3):
+        stripped = _VERSION_LABEL_RE.sub("", title)
+        if stripped == title:
+            break
+        title = stripped
     return title[:80]
 
 

@@ -175,3 +175,25 @@ class ImportFinalTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FinalTitleCleanupTests(unittest.TestCase):
+    """定稿文件名书名号里只允许正式标题，版本前缀必须剥离。"""
+
+    def test_version_prefixes_are_stripped(self) -> None:
+        from 工作台.菜单.screens.import_final import final_filename
+
+        cases = {
+            "返修稿 2：纯文本 LLM 不是被终结": "纯文本 LLM 不是被终结",
+            "初稿 1：某个正式标题": "某个正式标题",
+            "修订稿：另一个标题": "另一个标题",
+            "draft_2: English Title": "English Title",
+            "没有前缀的标题": "没有前缀的标题",
+        }
+        for raw, expected in cases.items():
+            name = final_filename(raw)
+            self.assertEqual(
+                name,
+                f"熵减进化室-公众号成稿-《{expected}》.md",
+                msg=f"raw={raw!r}",
+            )

@@ -55,10 +55,11 @@ class IMAKnowledgeBaseConfig:
     base_url: str
     client_id_env: str
     api_key_env: str
-    knowledge_base_name: str
+    knowledge_base_name: str          # 主库；多库时为 knowledge_base_names 的第一个
     knowledge_base_id_env: str
     max_results: int
     timeout_seconds: int
+    knowledge_base_names: tuple[str, ...] = ()  # 全部检索目标库；空 = 仅主库
 
 
 @dataclass(frozen=True)
@@ -176,16 +177,23 @@ def _parse_bing(raw: dict[str, Any]) -> PublicSearchConfig:
 
 
 def _parse_ima(raw: dict[str, Any], path: Path) -> IMAKnowledgeBaseConfig:
-    required = (
-        "base_url",
-        "client_id_env",
-        "api_key_env",
-        "knowledge_base_name",
-        "knowledge_base_id_env",
-    )
-    for key in required:
+    for key in ("base_url", "client_id_env", "api_key_env", "knowledge_base_id_env"):
         if not str(raw.get(key, "")).strip():
             raise ConfigError(f"{path}：[search.reference.ima] 缺少必需字段 `{key}`")
+    names_raw = raw.get("knowledge_base_names")
+    if isinstance(names_raw, list):
+        names = tuple(str(n).strip() for n in names_raw if str(n).strip())
+    else:
+        names = ()
+    if not names:
+        primary = str(raw.get("knowledge_base_name", "")).strip()
+        if primary:
+            names = (primary,)
+    if not names:
+        raise ConfigError(
+            f"{path}：[search.reference.ima] 缺少 knowledge_base_names"
+            "（或旧字段 knowledge_base_name）"
+        )
     max_results = int(raw.get("max_results", 10))
     timeout_seconds = int(raw.get("timeout_seconds", 20))
     if not 1 <= max_results <= 50:
@@ -196,10 +204,11 @@ def _parse_ima(raw: dict[str, Any], path: Path) -> IMAKnowledgeBaseConfig:
         base_url=str(raw["base_url"]).rstrip("/"),
         client_id_env=str(raw["client_id_env"]),
         api_key_env=str(raw["api_key_env"]),
-        knowledge_base_name=str(raw["knowledge_base_name"]).strip(),
+        knowledge_base_name=names[0],
         knowledge_base_id_env=str(raw["knowledge_base_id_env"]),
         max_results=max_results,
         timeout_seconds=timeout_seconds,
+        knowledge_base_names=names,
     )
 
 

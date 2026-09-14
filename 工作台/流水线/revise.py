@@ -67,7 +67,9 @@ class ReviseStage:
                     "content": (
                         f"返修轮次：{round_idx}\n"
                         f"上一轮问题：\n{json.dumps(asdict(verdict), ensure_ascii=False)}\n"
-                        f"原稿：\n{draft_text}"
+                        f"原稿：\n{draft_text}\n\n"
+                        "硬性要求：只输出修订后的稿件正文；正文第一行标题必须与原稿标题完全一致，"
+                        "禁止添加\u201c返修稿 N：\u201d\u201c修订版\u201d等任何版本前缀或修改标题措辞。"
                     ),
                 },
             ],

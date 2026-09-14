@@ -195,9 +195,9 @@ class TopicSelectionStage:
                 raise RuntimeError("两轮选题研究没有可供候选引用的有效来源")
             whitelist_lines = "\n".join(f"- {eid}" for eid in sorted(allowed_evidence_ids))
             research_summary = (
-                f"{research_summary.rstrip()}\n\n"
                 "## 可引用的来源 ID 清单（每条候选的“证据”字段只能从这里选，禁止编造）\n"
-                f"{whitelist_lines}\n"
+                f"{whitelist_lines}\n\n"
+                f"{research_summary}"
             )
         cache = topic_dir / "候选.json"
         if cache.exists():
@@ -215,7 +215,7 @@ class TopicSelectionStage:
             candidates = None
             parse_error = None
             feedback = None
-            for _ in range(3):
+            for attempt in range(3):
                 req = self.build_request(
                     column=column,
                     recent_issues=recent_issues,
@@ -235,6 +235,9 @@ class TopicSelectionStage:
                     break
                 except ValueError as exc:
                     parse_error = exc
+                    print(f"planner 输出未通过校验：{exc}", flush=True)
+                    if attempt < 2:
+                        print("正在附上可引用来源 ID 清单，纠错重试 planner…", flush=True)
                     if allowed_evidence_ids:
                         feedback = (
                             f"{exc}；可引用的来源 ID 仅有："

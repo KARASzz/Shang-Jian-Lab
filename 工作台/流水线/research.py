@@ -233,13 +233,15 @@ class TopicResearchStage:
                 title = source.get("title") or "（无标题）"
                 url = source.get("url") or "（无 URL）"
                 excerpt = " ".join(str(source.get("excerpt") or "").split())[:500]
-                # 只有抓取成功的来源才能作为候选选题的证据指针。
-                citable = status == "ok" and source.get("url")
-                marker = "" if citable else "（抓取失败，不可引用）"
-                lines.append(
-                    f"- [{source.get('channel')}] {source.get('id')} {status}{marker}："
-                    f"{title}（{url}）"
-                )
+                if status == "ok" and source.get("url"):
+                    lines.append(
+                        f"- [{source.get('channel')}] {source.get('id')}：{title}（{url}）"
+                    )
+                else:
+                    # 失败来源不在摘要中暴露编号，避免 planner 引用未验证 ID。
+                    lines.append(
+                        f"- [{source.get('channel')}]（抓取失败，不可引用）：{title}（{url}）"
+                    )
                 if excerpt:
                     lines.append(f"  摘要：{excerpt}")
             lines.append("")
@@ -298,7 +300,7 @@ class TopicResearchStage:
             # recent_issues 进入查询上下文，避免候选研究重复旧期；不把其原文写入日志。
             if recent_issues:
                 query = f"{query} 排除已用主题数量 {len(recent_issues)}"
-            print(f"正在进行选题研究第 {round_idx + 1}/2 轮：搜索 Tavily、Brave、Bing…", flush=True)
+            print(f"正在进行选题研究第 {round_idx + 1}/2 轮：搜索 Tavily、Brave、Bing、IMA 知识库…", flush=True)
             searched = self.search.search(query, round_idx=round_idx)
             # IMA 参考资料没有公开 URL；先由来源客户端取正文并落盘，公开 URL
             # 仍交给后面的 Scrapy 统一抓取。

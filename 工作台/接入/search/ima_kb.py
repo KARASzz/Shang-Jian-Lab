@@ -54,6 +54,8 @@ class IMAKnowledgeBaseSearch:
         self._config = config
         self._http_opener = http_opener or _secure_opener
         self._knowledge_base_id: str | None = None
+        self._kb_ids: dict[str, str] = {}                 # 库名 → 库ID 缓存
+        self._kb_targets: list[tuple[str, str]] | None = None
         self._output_dir: Path | None = None
         self._media_by_source_id: dict[str, str] = {}
 
@@ -127,30 +129,34 @@ class IMAKnowledgeBaseSearch:
                 return [item for item in value if isinstance(item, dict)]
         return []
 
-    def _resolve_knowledge_base_id(self) -> str:
-        if self._knowledge_base_id:
-            return self._knowledge_base_id
-        configured_id = resolve_api_key(self._config.knowledge_base_id_env)
-        if configured_id:
-            self._knowledge_base_id = configured_id
-            return configured_id
+    def _resolve_knowledge_base_id(self, name: str | None = None) -> str:
+        target = (name or self._config.knowledge_base_name).strip()
+        if target in self._kb_ids:
+            return self._kb_ids[target]
+        # 主库允许用环境变量直接指定 ID；其余检索库按名称解析。
+        if target == self._config.knowledge_base_name:
+            configured_id = resolve_api_key(self._config.knowledge_base_id_env)
+            if configured_id:
+                self._knowledge_base_id = configured_id
+                self._kb_ids[target] = configured_id
+                return configured_id
 
         cursor = ""
         while True:
             data = self._post(
                 f"{self._WIKI_PATH}/search_knowledge_base",
                 {
-                    "query": self._config.knowledge_base_name,
+                    "query": target,
                     "cursor": cursor,
                     "limit": 20,
                 },
             )
             for item in self._items(data, "info_list", "knowledge_base_list"):
-                name = str(item.get("name") or item.get("kb_name") or "").strip()
-                if name == self._config.knowledge_base_name:
+                found_name = str(item.get("name") or item.get("kb_name") or "").strip()
+                if found_name == target:
                     found = str(item.get("id") or item.get("kb_id") or "").strip()
                     if found:
-                        self._knowledge_base_id = found
+                        self._kb_ids[target] = found
                         return found
             if data.get("is_end", True):
                 break
@@ -158,9 +164,26 @@ class IMAKnowledgeBaseSearch:
             if not next_cursor or next_cursor == cursor:
                 break
             cursor = next_cursor
-        raise IMAKnowledgeBaseError(
-            f"找不到 IMA 知识库：{self._config.knowledge_base_name}"
-        )
+        raise IMAKnowledgeBaseError(f"找不到 IMA 知识库：{target}")
+
+    def _knowledge_base_targets(self) -> list[tuple[str, str]]:
+        """解析全部配置的检索目标库，返回 [(库名, 库ID)]。
+
+        单个库缺失只告警并跳过（简报类库可能改名/删除），全部缺失才报错。
+        """
+        if self._kb_targets is not None:
+            return self._kb_targets
+        names = self._config.knowledge_base_names or (self._config.knowledge_base_name,)
+        resolved: list[tuple[str, str]] = []
+        for name in names:
+            try:
+                resolved.append((name, self._resolve_knowledge_base_id(name)))
+            except IMAKnowledgeBaseError as exc:
+                print(f"提示：IMA 检索库「{name}」不可用（{exc}）", flush=True)
+        if not resolved:
+            raise IMAKnowledgeBaseError("没有任何可用的 IMA 检索库：" + "、".join(names))
+        self._kb_targets = resolved
+        return resolved
 
     @staticmethod
     def _source_id(knowledge_base_id: str, media_id: str) -> str:
@@ -180,9 +203,120 @@ class IMAKnowledgeBaseSearch:
         query = query.strip()
         if not query:
             return []
-        knowledge_base_id = self._resolve_knowledge_base_id()
-        limit = max_results or self._config.max_results
-        limit = max(1, min(limit, 50))
+        limit = max(1, min(max_results or self._config.max_results, 50))
+        targets = self._knowledge_base_targets()
+        # 每库配额均摊（向上取整），再轮转合并，保证各检索库均匀进入候选。
+        per_kb_limit = max(1, -(-limit // len(targets)))
+        out: list[SearchSource] = []
+        seen_ids: set[str] = set()
+        # IMA 搜索按整词/短语匹配，流水线长查询直接搜必零命中；
+        # 这里抽取若干短检索键逐个尝试，凑够即停。
+        for key in self._search_keys(query):
+            # 长复合词（如栏目名"大模型二三事"）几乎不会整词命中，
+            # 零命中时用 3 字前缀重试一次（"大模型"）。
+            variants = [key]
+            cjk = sum("\u4e00" <= ch <= "\u9fff" for ch in key)
+            if len(key) >= 5 and cjk * 2 >= len(key):
+                variants.append(key[:3])
+            for variant in variants:
+                key_pool: list[SearchSource] = []
+                pools = [
+                    self._safe_single_kb(variant, kb_id, kb_name, per_kb_limit)
+                    for kb_name, kb_id in targets
+                ]
+                index = 0
+                while True:
+                    progressed = False
+                    for pool in pools:
+                        if index >= len(pool):
+                            continue
+                        progressed = True
+                        source = pool[index]
+                        if source.id not in seen_ids:
+                            seen_ids.add(source.id)
+                            key_pool.append(source)
+                    if not progressed:
+                        break
+                    index += 1
+                # 键与键之间也轮转合并，兼顾不同关键词的多样性。
+                out = self._interleave(out, key_pool)[:limit]
+                if key_pool or len(out) >= limit:
+                    break
+            if len(out) >= limit:
+                break
+        return out
+
+    @staticmethod
+    def _interleave(a: list[SearchSource], b: list[SearchSource]) -> list[SearchSource]:
+        merged: list[SearchSource] = []
+        for i in range(max(len(a), len(b))):
+            if i < len(a):
+                merged.append(a[i])
+            if i < len(b):
+                merged.append(b[i])
+        return merged
+
+    @staticmethod
+    def _search_keys(query: str) -> list[str]:
+        """从流水线长查询里抽取 IMA 可命中的短检索键。
+
+        IMA 搜索按整词/短语匹配：``大模型`` 能命中，``大模型二三事`` 或
+        空格组合长句一律零命中。这里按空白和标点切词，优先 2–4 字的实义词
+        （真正的"词"，命中率最高），5 字以上的长短语只留一个作补充。
+        """
+        pattern = (
+            "[\\s，。：；、（）()【】\\[\\]「」『』·～~\\-—_/\\\\:;,."
+            "\"'？?！!<>《》=+*&^%$#@|]+"
+        )
+        tokens = [
+            t.strip()
+            for t in re.split(pattern, query)
+            if t.strip()
+        ]
+        skip = {"tavily", "brave", "bing", "ima"}
+        short_band: list[str] = []
+        long_band: list[str] = []
+        seen: set[str] = set()
+        for token in tokens:
+            if token.lower() in skip or token.isdigit() or len(token) < 2:
+                continue
+            trimmed = token[:10]
+            if trimmed in seen:
+                continue
+            seen.add(trimmed)
+            (short_band if len(trimmed) <= 4 else long_band).append(trimmed)
+        short_band.sort(key=len, reverse=True)
+        long_band.sort(key=len, reverse=True)
+        # 长短语（往往是最具体的主题词）排第一，短词补足。
+        keys: list[str] = []
+        if long_band:
+            keys.append(long_band[0])
+        keys.extend(short_band[: 3 - len(keys)])
+        if not keys and query.strip():
+            keys = [query.strip()[:10]]
+        return keys
+
+    def _safe_single_kb(
+        self,
+        query: str,
+        knowledge_base_id: str,
+        kb_name: str,
+        limit: int,
+    ) -> list[SearchSource]:
+        """单库检索失败（限流/网络）只告警跳过，不拖垮其余检索库。"""
+        try:
+            return self._search_single_kb(query, knowledge_base_id, kb_name, limit)
+        except IMAKnowledgeBaseError as exc:
+            print(f"提示：IMA 库「{kb_name}」检索失败，已跳过（{exc}）", flush=True)
+            return []
+
+    def _search_single_kb(
+        self,
+        query: str,
+        knowledge_base_id: str,
+        kb_name: str,
+        limit: int,
+    ) -> list[SearchSource]:
         cursor = ""
         out: list[SearchSource] = []
         while len(out) < limit:
@@ -215,7 +349,7 @@ class IMAKnowledgeBaseSearch:
                         id=source_id,
                         url="",
                         title=title,
-                        publisher=f"IMA 知识库：{self._config.knowledge_base_name}",
+                        publisher=f"IMA 知识库：{kb_name}",
                         published_at=None,
                         accessed_at=datetime.now(timezone.utc).isoformat(
                             timespec="seconds"
