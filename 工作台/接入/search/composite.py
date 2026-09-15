@@ -1,4 +1,4 @@
-"""把 Tavily / Brave / Bing 合成 ``SearchClient`` Protocol。"""
+"""旧版搜索兼容层；生产流水线改由 ``ResearchDispatchAgent`` 调度本地 MCP。"""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from 工作台.接入.search.tavily_mcp import TavilyMCPClient
 
 
 class CompositeSearch:
-    """三渠道合一；任一渠道失败以 ``fetch_failed`` 源记录，不假装零命中。"""
+    """旧版三渠道兼容层；生产流水线由五 MCP 调度器负责，不假装零命中。"""
 
     def __init__(self, config: WorkbenchConfig) -> None:
         self._tavily = TavilyMCPClient(config.tavily) if config.tavily else None

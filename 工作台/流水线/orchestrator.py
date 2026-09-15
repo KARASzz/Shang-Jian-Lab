@@ -89,6 +89,7 @@ class Orchestrator:
                 rounds_max=topic_research_rounds_max,
                 max_sources_per_round=topic_research_sources_max_per_round,
                 min_valid_channels_per_round=topic_research_min_valid_channels,
+                min_sources_total=topic_research_min_sources_total,
             )
             if crawler is not None else None
         )
@@ -148,7 +149,7 @@ class Orchestrator:
         if state.stage not in ("topic_research", "topic_selection"):
             self._selected_topic()  # 恢复也必须有明确选题，禁止栏目名兜底。
 
-        # 1) 选题前研究：两轮各调用 Tavily / Brave / Bing，再用 Scrapy 抓取。
+        # 1) 选题前研究：两轮调用四个本地搜索 MCP，再由 MCP 调度器抓取正文。
         #    进入选题阶段前先检查已有研究是否达到去重来源下限，不达标自动打回重跑。
         if state.stage == "topic_selection" and self.topic_research_stage is not None \
                 and not self.topic_research_stage.meets_source_floor(self.issue_dir):
@@ -159,7 +160,7 @@ class Orchestrator:
 
         if state.stage == "topic_research":
             if self.topic_research_stage is None:
-                raise RuntimeError("缺少 Scrapy 选题研究客户端，不能生成候选选题")
+                raise RuntimeError("缺少 MCP 调度器选题研究客户端，不能生成候选选题")
             state, _summary = self.topic_research_stage.run(
                 state,
                 issue_dir=self.issue_dir,
@@ -409,8 +410,9 @@ def build_orchestrator(issue_root: str | Path, *, user=None) -> Orchestrator:
     from 工作台.接入.config import ConfigError, load_default_config, load_local_config
     from 工作台.接入.envfile import load_env_files
     from 工作台.接入.models.client import ModelClient
-    from 工作台.接入.search.composite import CompositeSearch
-    from 工作台.接入.search.scrapy_crawler import ScrapyCrawler
+    from 工作台.接入.search.local_mcp import LocalMCPClient
+    from 工作台.接入.search.research_agent import ResearchDispatchAgent
+    from 工作台.接入.search.ima_kb import IMAKnowledgeBaseSearch
     from 工作台.流水线.cli_user import CliUser
 
     root = _repo_root()
@@ -422,6 +424,11 @@ def build_orchestrator(issue_root: str | Path, *, user=None) -> Orchestrator:
     issue_path = Path(issue_root)
     issue_id = issue_path.name
     pipe = cfg.pipeline
+    research_agent = ResearchDispatchAgent(
+        client=LocalMCPClient(config_path=cfg.local_mcp_config_path),
+        ima=IMAKnowledgeBaseSearch(cfg.ima) if cfg.ima else None,
+        max_pages=pipe.scrapy_max_pages if pipe else 96,
+    )
     return Orchestrator(
         issue_id=issue_id,
         issue_dir=str(issue_path),
@@ -429,12 +436,9 @@ def build_orchestrator(issue_root: str | Path, *, user=None) -> Orchestrator:
         planner=ModelClient(cfg.models["planner"]),
         writer=ModelClient(cfg.models["writer"]),
         reviewer=ModelClient(cfg.models["reviewer"]),
-        search=CompositeSearch(cfg),
+        search=research_agent,
         user=user or CliUser(),
-        crawler=ScrapyCrawler(
-            depth_limit=pipe.site_depth_max if pipe else 1,
-            max_pages=pipe.scrapy_max_pages if pipe else 96,
-        ),
+        crawler=research_agent,
         column=_parse_column(issue_id),
         revision_rounds_max=pipe.revision_rounds_max if pipe else 2,
         deep_search_rounds_max=pipe.deep_search_rounds_max if pipe else 2,

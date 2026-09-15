@@ -23,7 +23,11 @@ set PYTHONUTF8=1
 set "PYTHONPATH=%~dp0;%PYTHONPATH%"
 
 rem 透传命令行参数；菜单当前未读取，但保留扩展空间。
-python -m 工作台.菜单.app %*
+if exist "%~dp0.venv\Scripts\python.exe" (
+    "%~dp0.venv\Scripts\python.exe" -m 工作台.菜单.app %*
+) else (
+    python -m 工作台.菜单.app %*
+)
 set EXITCODE=%ERRORLEVEL%
 
 rem 还原代码页，避免遗留会话受影响。

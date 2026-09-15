@@ -11,7 +11,7 @@ from 工作台.接入.config import (
     PublicSearchConfig,
     WorkbenchConfig,
 )
-from 工作台.接入.discovery import discover_all
+from 工作台.接入.discovery import discover_legacy_all as discover_all
 
 
 def _make_config(

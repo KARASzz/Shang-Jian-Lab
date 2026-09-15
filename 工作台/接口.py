@@ -40,7 +40,7 @@ class ModelResponse:
 # ===== §2 搜索接口 =====
 
 SearchStatus = Literal["ok", "paywall", "captcha", "fetch_failed", "pdf_unparsed"]
-SearchChannel = Literal["tavily", "brave", "bing", "ima"]
+SearchChannel = Literal["tavily", "brave", "bing", "ima", "firecrawl", "omnisearch", "playwright"]
 
 
 @dataclass

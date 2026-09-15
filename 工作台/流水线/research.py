@@ -1,4 +1,4 @@
-"""选题前研究：两轮三渠道搜索后抓取网页，再交给 planner 生成候选。"""
+"""选题前研究：两轮多渠道搜索后抓取网页，再交给 planner 生成候选。"""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ def _disabled_channels(search: SearchClient) -> set[str]:
 
 
 class TopicResearchStage:
-    """固定两轮调用 Tavily / Brave / Bing，并抓取搜索结果正文。"""
+    """固定两轮调用已声明的搜索渠道，并抓取搜索结果正文。"""
 
     def __init__(
         self,
@@ -41,8 +41,8 @@ class TopicResearchStage:
             raise ValueError("选题研究必须严格执行 2 轮")
         if max_sources_per_round < 1:
             raise ValueError("max_sources_per_round 必须大于 0")
-        if not 1 <= min_valid_channels_per_round <= 3:
-            raise ValueError("min_valid_channels_per_round 必须在 1–3 之间")
+        if not 1 <= min_valid_channels_per_round <= 4:
+            raise ValueError("min_valid_channels_per_round 必须在 1–4 之间")
         if min_sources_total < 0:
             raise ValueError("min_sources_total 不能为负")
         self.search = search
@@ -74,7 +74,7 @@ class TopicResearchStage:
     def _validate_attempts(self, round_idx: int, sources: list[SearchSource]) -> None:
         attempted = {source.channel for source in sources}
         disabled = _disabled_channels(self.search)
-        required = EXPECTED_CHANNELS - disabled
+        required = self._expected_channels() - disabled
         missing = sorted(required - attempted)
         if missing:
             raise RuntimeError(
@@ -100,7 +100,7 @@ class TopicResearchStage:
             ok_by_channel.setdefault(source.channel, []).append(source)
         ordered_channels = [
             channel
-            for channel in ("tavily", "brave", "bing", "ima")
+            for channel in ("brave", "tavily", "omnisearch", "firecrawl", "ima")
             if channel in ok_by_channel
         ]
         ordered_channels += sorted(set(ok_by_channel) - set(ordered_channels))
@@ -213,12 +213,15 @@ class TopicResearchStage:
                    if permanent_disabled or dead_in_round else "")
             )
 
-    @staticmethod
-    def _round_payload(round_idx: int, query: str, sources: list[SearchSource]) -> dict:
+    def _expected_channels(self) -> set[str]:
+        getter = getattr(self.search, "expected_channels", None)
+        return set(getter()) if callable(getter) else set(EXPECTED_CHANNELS)
+
+    def _round_payload(self, round_idx: int, query: str, sources: list[SearchSource]) -> dict:
         return {
             "round": round_idx + 1,
             "query": query,
-            "channels_required": sorted(EXPECTED_CHANNELS),
+            "channels_required": sorted(self._expected_channels()),
             "channels_attempted": sorted({source.channel for source in sources}),
             "sources": [asdict(source) for source in sources],
         }
@@ -300,10 +303,10 @@ class TopicResearchStage:
             # recent_issues 进入查询上下文，避免候选研究重复旧期；不把其原文写入日志。
             if recent_issues:
                 query = f"{query} 排除已用主题数量 {len(recent_issues)}"
-            print(f"正在进行选题研究第 {round_idx + 1}/2 轮：搜索 Tavily、Brave、Bing、IMA 知识库…", flush=True)
+            print(f"正在进行选题研究第 {round_idx + 1}/2 轮：多渠道检索与参考库查询…", flush=True)
             searched = self.search.search(query, round_idx=round_idx)
             # IMA 参考资料没有公开 URL；先由来源客户端取正文并落盘，公开 URL
-            # 仍交给后面的 Scrapy 统一抓取。
+            # 仍交给后面的 MCP 调度器统一抓取。
             searched = [self.search.fetch(source) for source in searched]
             self._validate_attempts(round_idx, searched)
             # 跨轮去重：第二轮种子名额不要被第一轮已收录的 URL 浪费。
@@ -352,7 +355,7 @@ class TopicResearchStage:
             raise RuntimeError(
                 f"选题研究仅检索到 {len(retrieved_urls)} 个去重来源，"
                 f"低于要求的 {self.min_sources_total} 个（各渠道命中：{detail}），已停止。"
-                "请检查 Tavily / Brave / Bing 渠道配置（额度/凭据/网络）后重试；"
+                "请检查四个本地搜索 MCP（Brave/Tavily/Omnisearch/Firecrawl）的服务配置（额度/凭据/网络）后重试；"
                 "也可在 配置/本地.toml [pipeline] 调整 topic_research_min_sources_total。"
             )
 

@@ -57,4 +57,7 @@ done
 unset _wb_ca
 
 # 透传所有参数；菜单当前未读取，但保留扩展空间。
+if [ -x "$ROOT/.venv/bin/python" ]; then
+    exec "$ROOT/.venv/bin/python" -m 工作台.菜单.app "$@"
+fi
 exec python3 -m 工作台.菜单.app "$@"

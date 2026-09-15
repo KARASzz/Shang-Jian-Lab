@@ -31,7 +31,7 @@ class EvidenceCollectionStage:
         if rounds_max < 1:
             raise ValueError("deep_search_rounds_max 必须 ≥ 1")
         if require_crawl and crawler is None:
-            raise ValueError("证据阶段要求 Scrapy crawler")
+            raise ValueError("证据阶段要求 MCP 调度器")
         self.search = search
         self.crawler = crawler
         self.require_crawl = require_crawl
@@ -50,7 +50,7 @@ class EvidenceCollectionStage:
             if len(seen) >= self.unique_max:
                 break
             print(
-                f"正在检索第 {r + 1}/{self.rounds_max} 轮证据：Tavily、Brave、Bing、IMA 知识库…",
+                f"正在检索第 {r + 1}/{self.rounds_max} 轮证据：多渠道检索与参考库查询…",
                 flush=True,
             )
             batch = self.search.search(
@@ -112,7 +112,7 @@ class EvidenceCollectionStage:
             )
         else:
             if self.require_crawl:
-                raise RuntimeError("证据阶段缺少 Scrapy crawler，已停止")
+                raise RuntimeError("证据阶段缺少 MCP 调度器，已停止")
             usable_sources = [
                 source
                 for source in sources

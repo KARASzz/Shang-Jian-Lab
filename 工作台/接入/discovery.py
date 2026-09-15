@@ -1,10 +1,8 @@
-"""工作台 / 接入 / discovery —— 初始化搜索连接并发现可用工具。
+"""工作台 / 接入 / discovery —— 发现本地 MCP 工具。
 
-设计原则：
-
-- 接口规范 §2：stdio 必须先做工具发现；http 必须先 ping ``/mcp`` 握手。
-- 连接失败时，记录原因并返回 ``status="failed"`` 与空工具列表；
-  证据阶段会据此停止，避免把失败当成成功。
+``discover_all`` 是生产流水线入口，依次发现四个搜索 MCP 和 Playwright；
+旧的 Tavily / Brave / Bing 配置发现保留在 ``discover_legacy_all``，仅供迁移兼容。
+连接失败时返回 ``status="failed"`` 与空工具列表，避免把失败当成成功。
 """
 
 from __future__ import annotations
@@ -19,17 +17,14 @@ from 工作台.接入.search.tavily_mcp import TavilyMCPClient
 
 @dataclass(frozen=True)
 class MCPDiscoveryResult:
-    channel: str                       # tavily | brave | bing
+    channel: str                       # brave | tavily | omnisearch | firecrawl | playwright
     status: str                        # ok | failed
     tools: list[str] = field(default_factory=list)
     detail: dict[str, Any] = field(default_factory=dict)
 
 
-def discover_all(config: WorkbenchConfig) -> dict[str, MCPDiscoveryResult]:
-    """对所有搜索渠道执行初始化 / 握手 / 工具发现。
-
-    返回每个渠道的发现结果；真实失败由调用方决定后续降级策略。
-    """
+def discover_legacy_all(config: WorkbenchConfig) -> dict[str, MCPDiscoveryResult]:
+    """发现旧版 Tavily / Brave / Bing 配置，供迁移兼容测试使用。"""
 
     results: dict[str, MCPDiscoveryResult] = {}
 
@@ -83,4 +78,30 @@ def discover_all(config: WorkbenchConfig) -> dict[str, MCPDiscoveryResult]:
             },
         )
 
+    return results
+
+
+def discover_all(config: WorkbenchConfig) -> dict[str, MCPDiscoveryResult]:
+    """发现生产流水线使用的五个本地 MCP。"""
+    from 工作台.接入.search.local_mcp import LocalMCPClient
+    from 工作台.接入.search.research_agent import SERVERS
+
+    client = LocalMCPClient(config_path=config.local_mcp_config_path)
+    results: dict[str, MCPDiscoveryResult] = {}
+    for channel, server in SERVERS.items():
+        try:
+            tools = client.discover(server)
+            results[channel] = MCPDiscoveryResult(
+                channel=channel,
+                status="ok",
+                tools=[str(item["name"]) for item in tools if isinstance(item, dict) and item.get("name")],
+                detail={"server": server},
+            )
+        except Exception as exc:  # noqa: BLE001 - 诊断必须报告每个服务的安全错误摘要
+            results[channel] = MCPDiscoveryResult(
+                channel=channel,
+                status="failed",
+                tools=[],
+                detail={"server": server, "error": type(exc).__name__},
+            )
     return results

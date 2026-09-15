@@ -1,5 +1,7 @@
 # 内容流水线（工作台/流水线）
 
+研究阶段调用本地五 MCP；其中 Node REPL 明确排除，Scrapy 仅保留为独立工具。
+
 实现 PLAN §3「三模型流水线」步骤 1–8。阶段模块通过 Protocol 注入
 `ModelClient` / `SearchClient` / `UserInput`；测试用 stub，续跑时由
 `build_orchestrator` 组装真实接入层。
@@ -10,9 +12,9 @@
 |---|---|
 | `state.py` | `TaskState` dataclass + 阶段推进纯函数（与接口规范 §4 字面量一致） |
 | `checkpoint.py` | checkpoint.json 原子写（`.tmp` + `os.replace`，失败清理）、版本一致性校验 |
-| `research.py` | 选题前研究：两轮各调用 Tavily / Brave / Bing，并定向检索 IMA 参考库，再由 Scrapy 抓取公开 URL 正文 |
+| `research.py` | 选题前研究：两轮调用本地 Brave / Tavily / Omnisearch / Firecrawl MCP，并定向检索 IMA 参考库，再由 MCP 调度器抓取正文 |
 | `topic_selection.py` | 选题：仅基于两轮研究资料调 planner 拿 5 候选 → 用户选/自选 |
-| `evidence.py` | 两轮检索并由 Scrapy 抓正文：调 search + crawler → `资料/证据清单.json` |
+| `evidence.py` | 两轮检索并由 MCP 调度器抓正文：调 search + crawler → `资料/证据清单.json` |
 | `planning.py` | 策划：调 planner 出三角度策划.md |
 | `drafts.py` | 三稿：调 writer 依次生成 3 篇独立初稿 |
 | `review.py` | 审稿：调 reviewer；4 类必阻断不能被 score 救活 |
@@ -30,7 +32,7 @@
 
 - 标准库：`dataclasses` / `datetime` / `hashlib` / `json` / `os` / `pathlib` / `typing`。
 - 跨模块：阶段代码只引用 `工作台.接口` 的数据类与 Protocol。真实客户端由 `orchestrator.build_orchestrator` 在续跑时组装。
-- 运行依赖：Scrapy（选题研究和证据阶段必须安装；缺失时明确停步，不回退成假成功）。
+- 运行依赖：项目隔离环境中的 `mcp>=1.26,<2`；Scrapy 仅供独立批量爬站工具使用。
 - 可选：`pytest`（仅在运行 `测试/流水线/` 时需要，由主线程按需安装）。
 
 ## 不变量（接口规范对齐）

@@ -105,6 +105,7 @@ class WorkbenchConfig:
     pipeline: PipelineConfig | None = None
     review: ReviewConfig | None = None
     task: TaskConfig | None = None
+    local_mcp_config_path: str | None = None
 
 
 def _require(d: dict[str, Any], dotted: str, path: Path) -> Any:
@@ -232,8 +233,8 @@ def _parse_pipeline(raw: dict[str, Any]) -> PipelineConfig:
         raise ConfigError("[pipeline] topic_research_rounds_max 必须为 2")
     if cfg.topic_research_sources_max_per_round < 1:
         raise ConfigError("[pipeline] topic_research_sources_max_per_round 必须大于 0")
-    if not 1 <= cfg.topic_research_min_valid_channels <= 3:
-        raise ConfigError("[pipeline] topic_research_min_valid_channels 必须在 1–3 之间")
+    if not 1 <= cfg.topic_research_min_valid_channels <= 4:
+        raise ConfigError("[pipeline] topic_research_min_valid_channels 必须在 1–4 之间")
     if cfg.topic_research_min_sources_total < 1:
         raise ConfigError("[pipeline] topic_research_min_sources_total 必须大于 0")
     if cfg.scrapy_max_pages < 1:
@@ -377,6 +378,7 @@ def _parse_workbench(raw: dict[str, Any], path: Path) -> WorkbenchConfig:
 
     return WorkbenchConfig(
         meta=meta,
+        local_mcp_config_path=raw.get("search", {}).get("local_mcp", {}).get("config_path") or None,
         models=models,
         tavily=tavily,
         brave=brave,

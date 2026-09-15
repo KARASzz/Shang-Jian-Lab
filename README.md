@@ -53,11 +53,11 @@ flowchart TD
     D --> E
 
     subgraph R[选题前研究：严格 2 轮]
-        E --> F1[每轮调用 Tavily / Brave / Bing]
+        E --> F1[每轮调用本地 Brave / Tavily / Omnisearch / Firecrawl MCP]
         E --> F2[按关键词检索 IMA<br/>参考库，最多 10 条命中]
         F1 --> G[合并结果并校验渠道]
         F2 --> G
-        G --> H[Scrapy 抓取公开 URL 正文]
+        G --> H[MCP 调度器抓取公开 URL 正文]
         H --> I[基于研究资料生成 5 个候选选题]
     end
 
@@ -65,8 +65,8 @@ flowchart TD
     J -->|编号或自拟| K[保存选定选题]
 
     subgraph EVID[选题后证据收集：最多 2 轮]
-        K --> L1[每轮检索 Tavily / Brave / Bing / IMA]
-        L1 --> L2[Scrapy 抓取公开来源正文<br/>IMA 只读取命中条目正文]
+        K --> L1[每轮调用四个搜索 MCP，并检索 IMA 参考库]
+        L1 --> L2[MCP 调度器抓取公开来源正文<br/>IMA 只读取命中条目正文]
         L2 --> L3[写入资料/证据清单.json]
     end
 

@@ -36,8 +36,15 @@ timeout_seconds = 180
 max_retries = 2
 
 # ===== 搜索渠道 =====
+[search.local_mcp]
+# 留空读取 CODEX_HOME/config.toml；未设置 CODEX_HOME 时读取 ~/.codex/config.toml。
+config_path = ""
+# 使用本地 brave-search / tavily / mcp-omnisearch / firecrawl-stdio / playwright。
+# IMA 是另行配置的参考库，不计入五 MCP。
+
+# 旧字段仅为配置迁移兼容，生产流水线不再调用这些客户端。
 [search.mcp.tavily]
-transport = "stdio"             # stdio | http
+transport = "stdio"
 command = "npx"
 args = ["-y", "@tavily/mcp-server"]
 env = { TAVILY_API_KEY = "TAVILY_API_KEY" }
@@ -75,7 +82,7 @@ topic_research_rounds_max = 2
 topic_research_sources_max_per_round = 24
 topic_research_min_valid_channels = 2
 topic_research_min_sources_total = 40
-scrapy_max_pages = 96
+scrapy_max_pages = 96  # 历史字段名，现控制 MCP 每批抓取的 URL 上限
 revision_rounds_max = 2
 network_retry_max = 2
 auth_failure_abort = true
