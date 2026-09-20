@@ -2,9 +2,16 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
+from typing import Iterable
 
 from 工作台.接口 import ModelClient, ModelRequest
+from 工作台.接入.models.errors import (
+    ModelCallError,
+    RateLimitError,
+    RoleMismatchError,
+)
 from 工作台.流水线.checkpoint import (
     atomic_write_checkpoint,
     commit_stage,
@@ -21,10 +28,12 @@ class DraftsStage:
         self,
         *,
         writer: ModelClient,
+        writer_fallbacks: Iterable[ModelClient] = (),
         snapshot_id: str,
         target_words: int = 3000,
     ) -> None:
         self.writer = writer
+        self.writer_fallbacks = tuple(writer_fallbacks)
         self.snapshot_id = snapshot_id
         self.target_words = target_words
 
@@ -82,9 +91,7 @@ class DraftsStage:
                 evidence_ids=evidence_ids,
             )
             print(f"正在撰写第 {i}/3 篇初稿…", flush=True)
-            resp = self.writer.chat(req)
-            if resp.raw_error:
-                raise RuntimeError(f"writer 第 {i} 次失败：{resp.raw_error}")
+            resp = self._chat(req, draft_number=i)
             md = resp.text
             (drafts_dir / f"初稿-{i}.md").write_text(md, encoding="utf-8")
             state = record_version(state, f"draft_{i}", md)
@@ -99,6 +106,35 @@ class DraftsStage:
             text=(drafts_dir / "初稿-3.md").read_text(encoding="utf-8"),
         )
         return state, [drafts_dir / f"初稿-{i}.md" for i in (1, 2, 3)]
+
+    def _chat(self, request: ModelRequest, *, draft_number: int):
+        try:
+            response = self.writer.chat(request)
+        except RateLimitError:
+            if not self.writer_fallbacks:
+                raise
+            print("主写稿模型额度受限，切换到 GLM-5.1…", flush=True)
+            last_error: ModelCallError | None = None
+            for index, client in enumerate(self.writer_fallbacks):
+                fallback_request = replace(
+                    request, request_model=client.config.request_model,
+                )
+                try:
+                    response = client.chat(fallback_request)
+                    if response.raw_error:
+                        raise RateLimitError(response.raw_error, status_code=429)
+                    return response
+                except RoleMismatchError:
+                    raise
+                except ModelCallError as exc:
+                    last_error = exc
+                    if index + 1 < len(self.writer_fallbacks):
+                        print("GLM-5.1 暂不可用，切换到 MiniMax-M3…", flush=True)
+            assert last_error is not None
+            raise last_error
+        if response.raw_error:
+            raise RuntimeError(f"writer 第 {draft_number} 次失败：{response.raw_error}")
+        return response
 
 
 __all__ = ["DraftsStage"]

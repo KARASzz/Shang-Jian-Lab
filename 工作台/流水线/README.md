@@ -16,7 +16,7 @@
 | `topic_selection.py` | 选题：仅基于两轮研究资料调 planner 拿 5 候选 → 用户选/自选 |
 | `evidence.py` | 按结果缺口检索并由 MCP 调度器抓正文：调 search + crawler → `资料/证据清单.json` |
 | `planning.py` | 策划：调 planner 出三角度策划.md |
-| `drafts.py` | 三稿：调 writer 依次生成 3 篇独立初稿 |
+| `drafts.py` | 三稿：调 writer 依次生成 3 篇独立初稿；主模型遇 429 时依次回退 GLM-5.1、MiniMax-M3 |
 | `review.py` | 审稿：调 reviewer；4 类必阻断不能被 score 救活 |
 | `revise.py` | 返修：qwen 返修 + GLM 复审；最多 2 轮；超限进入 await_human |
 | `finalizing.py` | 待定稿：输出推荐稿 + 备选标题 + 摘要 + 资料口径 |
@@ -42,3 +42,4 @@
 - `revision_rounds_max` 默认 2；超限直接 `awaiting_human`，**不再调用模型**。
 - checkpoint 写失败时清理 `.tmp`，不得留下半文件。
 - 上游重跑 → `rerun_invalidated` 含当前及之后所有阶段；阶段生成新产物后立即移出清单；恢复时若产物哈希与 `versions` 不一致 → `VersionMixingError`。
+- 初稿主写手遇 HTTP 429 且内置重试耗尽后，才按 GLM-5.1 → MiniMax-M3 顺序尝试；认证、岗位配置、网络及其他错误不触发模型切换。此策略只用于三篇初稿，不影响返修、审稿和定稿。

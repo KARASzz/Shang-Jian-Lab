@@ -7,7 +7,7 @@
 schema_version = "1.0"
 issue_lockfile = "配置/本期.toml"   # 当前进行中的期被锁定的岗位快照
 
-# ===== 模型岗位（每个岗位固定一个模型，禁止运行时替换） =====
+# ===== 模型岗位（岗位主模型固定；初稿写作 429 时按 GLM→MiniMax 顺序降级） =====
 [models.planner]
 provider = "openai-compatible"
 base_url_env = "MINIMAX_BASE_URL"

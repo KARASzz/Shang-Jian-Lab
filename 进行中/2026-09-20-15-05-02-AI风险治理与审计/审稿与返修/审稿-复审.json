@@ -1,0 +1,53 @@
+{
+  "round": 2,
+  "verdicts": [
+    {
+      "draft_version": "revise_2",
+      "issues": [
+        {
+          "severity": "block",
+          "category": "unsupported_key_fact",
+          "location": "段落'旧范式正在走向黄昏'、'新现实是概率性行为流'、'方法论必须迁移'、'监管侧想要入口'。",
+          "description": "稿件声称 ISO/IEC 42001 要求'持续的生命周期管理'、NIST AI RMF 指出'建立行为基线'、欧盟 AI Act 要求'合格评定'、中国法规要求'算法备案'，但全文未挂载任何 SearchSource ID。移除 [数据缺口] 标签不等于补充依据。这违反了'禁止无出处条款'的审稿侧重，属于关键事实无依据。",
+          "evidence_source_ids": [],
+          "suggestion": "必须为上述所有法规和标准的引用补充具体的来源链接或文档编号，并挂载正确的 SearchSource ID。若无法找到确切出处，必须删除具体的条款声称。"
+        },
+        {
+          "severity": "minor",
+          "category": "content_gap",
+          "location": "段落'落地的基建深水区比你想象的更深'。",
+          "description": "关于'落地成本往往超出预算'的论述仍缺乏具体数据或案例支撑，但表述已调整为定性观察，风险降低。",
+          "evidence_source_ids": [],
+          "suggestion": "建议补充一两个典型场景或行业报告数据以增强说服力，非阻断项。"
+        }
+      ],
+      "score": 65.0,
+      "recommendation": "draft_1",
+      "pass_": false
+    }
+  ],
+  "recommendation": {
+    "draft_version": "revise_2",
+    "issues": [
+      {
+        "severity": "block",
+        "category": "unsupported_key_fact",
+        "location": "段落'旧范式正在走向黄昏'、'新现实是概率性行为流'、'方法论必须迁移'、'监管侧想要入口'。",
+        "description": "稿件声称 ISO/IEC 42001 要求'持续的生命周期管理'、NIST AI RMF 指出'建立行为基线'、欧盟 AI Act 要求'合格评定'、中国法规要求'算法备案'，但全文未挂载任何 SearchSource ID。移除 [数据缺口] 标签不等于补充依据。这违反了'禁止无出处条款'的审稿侧重，属于关键事实无依据。",
+        "evidence_source_ids": [],
+        "suggestion": "必须为上述所有法规和标准的引用补充具体的来源链接或文档编号，并挂载正确的 SearchSource ID。若无法找到确切出处，必须删除具体的条款声称。"
+      },
+      {
+        "severity": "minor",
+        "category": "content_gap",
+        "location": "段落'落地的基建深水区比你想象的更深'。",
+        "description": "关于'落地成本往往超出预算'的论述仍缺乏具体数据或案例支撑，但表述已调整为定性观察，风险降低。",
+        "evidence_source_ids": [],
+        "suggestion": "建议补充一两个典型场景或行业报告数据以增强说服力，非阻断项。"
+      }
+    ],
+    "score": 65.0,
+    "recommendation": "draft_1",
+    "pass_": false
+  }
+}

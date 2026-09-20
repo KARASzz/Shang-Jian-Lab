@@ -13,6 +13,12 @@ from 工作台.流水线.prompts import request_model_of, system_prompt
 # 仅挑以编号开头的行（"1. ..." / "1、..." / "1) ..."），剔除标题、立意、
 # 空行、Markdown 围栏。planner 必须给齐恰好 5 个编号行。
 _CANDIDATE_LINE = re.compile(r"^\s*\d+\s*[\.、)]\s*\S")
+# MCP URLs use channel-round-SHA256-prefix; IMA uses ima-SHA256-prefix;
+# older Tavily/Brave/Bing clients use a numeric result index.
+_EVIDENCE_ID = re.compile(
+    r"\b(?:[a-z][a-z0-9_]*-\d+-(?:\d+|[a-f0-9]{16})|ima-[a-f0-9]{16})\b",
+    re.IGNORECASE,
+)
 
 
 class TopicSelectionStage:
@@ -128,24 +134,28 @@ class TopicSelectionStage:
                 block_lines.append(cont.rstrip())
             chunks.append("\n".join(block_lines))
         if require_evidence:
+            allowed_ids_normalized = (
+                {str(evidence_id).lower() for evidence_id in allowed_evidence_ids}
+                if allowed_evidence_ids is not None
+                else None
+            )
+            ids_by_candidate = [
+                {evidence_id.lower() for evidence_id in _EVIDENCE_ID.findall(chunk)}
+                for chunk in chunks
+            ]
             missing = [
                 str(index + 1)
-                for index, chunk in enumerate(chunks)
-                if not re.search(
-                    r"(?:tavily|brave|bing)-\d+-\d+",
-                    chunk,
-                    re.IGNORECASE,
-                )
+                for index, ids in enumerate(ids_by_candidate)
+                if not ids
             ]
             if missing:
                 raise ValueError(
                     f"planner 的候选缺少证据指针：第 {', '.join(missing)} 条"
                 )
-            if allowed_evidence_ids is not None:
+            if allowed_ids_normalized is not None:
                 invalid = []
-                for index, chunk in enumerate(chunks):
-                    ids = set(re.findall(r"(?:tavily|brave|bing)-\d+-\d+", chunk, re.IGNORECASE))
-                    if not ids & allowed_evidence_ids:
+                for index, ids in enumerate(ids_by_candidate):
+                    if not ids & allowed_ids_normalized:
                         invalid.append(str(index + 1))
                 if invalid:
                     raise ValueError(

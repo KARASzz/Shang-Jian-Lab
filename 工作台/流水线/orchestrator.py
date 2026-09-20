@@ -56,6 +56,7 @@ class Orchestrator:
         snapshot_id: str,
         planner: ModelClient,
         writer: ModelClient,
+        writer_fallbacks: Iterable[ModelClient] = (),
         reviewer: ModelClient,
         search: SearchClient,
         user: UserInput,
@@ -109,7 +110,10 @@ class Orchestrator:
             site_depth_max=site_depth_max,
         )
         self.planning_stage = PlanningStage(planner=planner, snapshot_id=snapshot_id)
-        self.drafts_stage = DraftsStage(writer=writer, snapshot_id=snapshot_id)
+        self.drafts_stage = DraftsStage(
+            writer=writer, writer_fallbacks=writer_fallbacks,
+            snapshot_id=snapshot_id,
+        )
         self.review_stage = ReviewStage(
             reviewer=reviewer, snapshot_id=snapshot_id, column=column,
         )
@@ -407,6 +411,8 @@ def _find_issue_dir(issue_id: str, issue_root: str | Path | None = None) -> Path
 
 def build_orchestrator(issue_root: str | Path, *, user=None) -> Orchestrator:
     """按本地配置组装真实客户端。测试可注入 ``user``；缺密钥时由 ModelClient 抛 AuthError。"""
+    from dataclasses import replace
+
     from 工作台.接入.config import ConfigError, load_default_config, load_local_config
     from 工作台.接入.envfile import load_env_files
     from 工作台.接入.models.client import ModelClient
@@ -430,12 +436,24 @@ def build_orchestrator(issue_root: str | Path, *, user=None) -> Orchestrator:
         max_pages=pipe.scrapy_max_pages if pipe else 96,
         server_overrides=cfg.local_mcp_servers,
     )
+    writer_fallbacks = []
+    for source_role, expected_model in (
+        ("reviewer", "glm-5.1"),
+        ("planner", "minimax-m3"),
+    ):
+        source_config = cfg.models.get(source_role)
+        if source_config and source_config.request_model.casefold() == expected_model:
+            writer_fallbacks.append(
+                ModelClient(replace(source_config, role="writer"))
+            )
+
     return Orchestrator(
         issue_id=issue_id,
         issue_dir=str(issue_path),
         snapshot_id=str((root / "配置" / "本期.toml").resolve()),
         planner=ModelClient(cfg.models["planner"]),
         writer=ModelClient(cfg.models["writer"]),
+        writer_fallbacks=writer_fallbacks,
         reviewer=ModelClient(cfg.models["reviewer"]),
         search=research_agent,
         user=user or CliUser(),

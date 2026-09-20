@@ -148,6 +148,35 @@ class TopicResearchTests(unittest.TestCase):
                 )
 
 
+class TopicSelectionEvidenceIdTests(unittest.TestCase):
+    def test_accepts_current_channel_hashes_and_ima_ids_from_allowlist(self):
+        evidence_ids = [
+            "firecrawl-0-1e342d114c8460a1",
+            "brave-0-42a986d2e530cd73",
+            "ima-0123456789abcdef",
+            "context7-1-abcdef0123456789",
+            "tavily-0-12",
+        ]
+        text = "\n".join(
+            f"{i}. 候选 {i}\n   立意：立意 {i}\n   证据：{evidence_id}"
+            for i, evidence_id in enumerate(evidence_ids, start=1)
+        )
+        stage = TopicSelectionStage(
+            planner=StubModel(planner_text=""),
+            user=StubUser(choice=1),
+            snapshot_id="s",
+            require_research=True,
+        )
+
+        parsed = stage.parse_candidates(
+            text,
+            require_evidence=True,
+            allowed_evidence_ids=set(evidence_ids),
+        )
+
+        self.assertEqual(len(parsed), 5)
+
+
 if __name__ == "__main__":
     unittest.main()
 
