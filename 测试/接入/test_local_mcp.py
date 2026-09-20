@@ -110,43 +110,43 @@ def _write_config(text: str) -> Path:
 
 
 class LocalMCPClientTests(unittest.TestCase):
-    def test_discover_returns_all_paginated_tools_with_original_schema(self) -> None:
+    def test_configured_servers_exposes_only_safe_metadata(self) -> None:
+        config = _write_config(
+            '[mcp_servers."firecrawl-mcp"]\n'
+            'type = "stdio"\n'
+            'command = "private-command"\n'
+            'args = ["secret-argument"]\n'
+            '[mcp_servers."firecrawl-mcp".env]\n'
+            'FIRECRAWL_API_KEY = "secret-token"\n'
+        )
+        metadata = local_mcp.LocalMCPClient(config_path=config).configured_servers()
+        self.assertEqual(metadata, {"firecrawl-mcp": {"enabled": True, "transport": "stdio"}})
+        self.assertNotIn("secret-token", repr(metadata))
+        self.assertNotIn("private-command", repr(metadata))
+
+    def test_error_classification_never_returns_service_text(self) -> None:
+        secret = "Bearer secret-token 429 rate limit"
+        self.assertEqual(local_mcp.classify_error(RuntimeError(secret)), "rate_limit")
+        tavily_limit = {"isError": True, "content": [{"type": "text", "text": "This request exceeds this API key's set usage limit."}]}
+        self.assertEqual(local_mcp.classify_error(tavily_limit), "quota")
+        error = local_mcp.LocalMCPError("safe message", category="auth")
+        self.assertEqual(error.category, "auth")
+        self.assertNotIn("secret-token", repr(error.category))
+
+    def test_frozen_omnisearch_is_blocked_before_service_start(self) -> None:
         config = _write_config(
             '[mcp_servers."mcp-omnisearch"]\n'
             'type = "stdio"\n'
             'command = "fake-mcp"\n'
             'args = []\n'
         )
-        schema = {
-            "type": "object",
-            "properties": {"query": {"type": "string"}},
-            "required": ["query"],
-        }
-        session = _Session(
-            pages=[
-                {"tools": [{"name": "search", "inputSchema": schema}], "nextCursor": "page-2"},
-                {"tools": [{"name": "fetch", "description": "fetch"}]},
-            ]
-        )
         transport = _AsyncContext(("read", "write"))
-        runtime = _Runtime(session, transport)
-
+        runtime = _Runtime(_Session(pages=[]), transport)
         with patch.object(local_mcp, "_load_sdk", return_value=runtime):
-            tools = local_mcp.LocalMCPClient(config_path=config).discover("mcp-omnisearch")
-
-        self.assertEqual(
-            tools,
-            [
-                {"name": "search", "inputSchema": schema},
-                {"name": "fetch", "description": "fetch"},
-            ],
-        )
-        self.assertEqual(session.cursors, [None, "page-2"])
-        self.assertTrue(session.initialized)
-        self.assertTrue(session.entered)
-        self.assertTrue(session.exited)
-        self.assertTrue(transport.entered)
-        self.assertTrue(transport.exited)
+            with self.assertRaises(local_mcp.LocalMCPError) as caught:
+                local_mcp.LocalMCPClient(config_path=config).discover("mcp-omnisearch")
+        self.assertEqual(caught.exception.category, "configuration")
+        self.assertFalse(transport.entered)
 
     def test_call_initializes_discovers_calls_requested_tool_and_closes_contexts(self) -> None:
         config = _write_config(
@@ -171,6 +171,31 @@ class LocalMCPClientTests(unittest.TestCase):
         self.assertEqual(result, {"content": [{"type": "text", "text": "result"}], "isError": False})
         self.assertEqual(session.calls, [("brave_web_search", arguments)])
         self.assertTrue(session.initialized)
+        self.assertTrue(session.exited)
+        self.assertTrue(transport.exited)
+
+    def test_call_any_discovers_and_calls_in_one_mcp_session(self) -> None:
+        config = _write_config(
+            '[mcp_servers."firecrawl-mcp"]\n'
+            'type = "stdio"\n'
+            'command = "fake-mcp"\n'
+            'args = []\n'
+        )
+        schema = {"type": "object", "properties": {"query": {}, "limit": {}}, "required": ["query"]}
+        session = _Session(
+            pages=[{"tools": [{"name": "firecrawl_search", "inputSchema": schema}]}],
+            result={"structuredContent": {"results": []}},
+        )
+        transport = _AsyncContext(("read", "write"))
+        runtime = _Runtime(session, transport)
+        with patch.object(local_mcp, "_load_sdk", return_value=runtime):
+            result = local_mcp.LocalMCPClient(config_path=config).call_any(
+                "firecrawl-mcp", ("firecrawl_research_search_papers", "firecrawl_search"),
+                {"query": "AI", "limit": 4, "unused": True},
+            )
+        self.assertEqual(result["tool"]["name"], "firecrawl_search")
+        self.assertEqual(session.calls, [("firecrawl_search", {"query": "AI", "limit": 4})])
+        self.assertEqual(session.cursors, [None])
         self.assertTrue(session.exited)
         self.assertTrue(transport.exited)
 
@@ -237,7 +262,7 @@ class LocalMCPClientTests(unittest.TestCase):
 
         with self.assertRaisesRegex(local_mcp.LocalMCPError, "未找到 MCP 服务"):
             client.discover("missing")
-        with self.assertRaisesRegex(local_mcp.LocalMCPError, "Node REPL"):
+        with self.assertRaisesRegex(local_mcp.LocalMCPError, "排除本项目检索范围"):
             client.discover("node_repl")
 
     def test_missing_sdk_is_reported_without_exposing_config_values(self) -> None:

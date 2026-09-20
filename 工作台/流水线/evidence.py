@@ -1,4 +1,4 @@
-"""证据收集（PLAN §3 步骤 2）。"""
+"""证据收集：调用任务路由检索并提取证据正文。"""
 
 from __future__ import annotations
 
@@ -46,11 +46,14 @@ class EvidenceCollectionStage:
         anchor_reports: list[str] | None = None,
     ) -> list[SearchSource]:
         seen: dict[str, SearchSource] = {}
+        set_intent = getattr(self.search, "set_intent", None)
+        if callable(set_intent):
+            set_intent("evidence")
         for r in range(self.rounds_max):
             if len(seen) >= self.unique_max:
                 break
             print(
-                f"正在检索第 {r + 1}/{self.rounds_max} 轮证据：多渠道检索与参考库查询…",
+                f"正在检索第 {r + 1}/{self.rounds_max} 轮证据：按需检索与参考库查询…",
                 flush=True,
             )
             batch = self.search.search(

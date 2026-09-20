@@ -106,6 +106,7 @@ class WorkbenchConfig:
     review: ReviewConfig | None = None
     task: TaskConfig | None = None
     local_mcp_config_path: str | None = None
+    local_mcp_servers: dict[str, str] = field(default_factory=dict)
 
 
 def _require(d: dict[str, Any], dotted: str, path: Path) -> Any:
@@ -355,6 +356,20 @@ def load_local_config(
     return _parse_workbench(raw, target)
 
 
+def _parse_local_mcp_servers(raw: Any, path: Path) -> dict[str, str]:
+    if raw is None:
+        return {}
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{path}：[search.local_mcp.servers] 必须是表")
+    allowed = {"brave", "tavily", "firecrawl", "playwright", "context7"}
+    unknown = set(raw) - allowed
+    if unknown:
+        raise ConfigError("[search.local_mcp.servers] 含未知或暂时冻结的检索能力")
+    if any(not isinstance(value, str) or not value.strip() for value in raw.values()):
+        raise ConfigError("[search.local_mcp.servers] 服务名必须是非空字符串")
+    return dict(raw)
+
+
 def _parse_workbench(raw: dict[str, Any], path: Path) -> WorkbenchConfig:
     meta = raw.get("meta", {})
     models = _parse_models(raw.get("models", {}))
@@ -363,6 +378,10 @@ def _parse_workbench(raw: dict[str, Any], path: Path) -> WorkbenchConfig:
     brave_raw = raw.get("search", {}).get("mcp", {}).get("brave")
     bing_raw = raw.get("search", {}).get("public", {}).get("bing")
     ima_raw = raw.get("search", {}).get("reference", {}).get("ima")
+    local_mcp_raw = raw.get("search", {}).get("local_mcp", {})
+    if not isinstance(local_mcp_raw, dict):
+        raise ConfigError(f"{path}：[search.local_mcp] 必须是表")
+    local_mcp_servers = _parse_local_mcp_servers(local_mcp_raw.get("servers"), path)
 
     tavily = _parse_tavily(tavily_raw) if tavily_raw else None
     brave = _parse_brave(brave_raw) if brave_raw else None
@@ -379,6 +398,7 @@ def _parse_workbench(raw: dict[str, Any], path: Path) -> WorkbenchConfig:
     return WorkbenchConfig(
         meta=meta,
         local_mcp_config_path=raw.get("search", {}).get("local_mcp", {}).get("config_path") or None,
+        local_mcp_servers=local_mcp_servers,
         models=models,
         tavily=tavily,
         brave=brave,

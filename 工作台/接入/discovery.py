@@ -1,6 +1,6 @@
 """工作台 / 接入 / discovery —— 发现本地 MCP 工具。
 
-``discover_all`` 是生产流水线入口，依次发现四个搜索 MCP 和 Playwright；
+``discover_all`` 只发现已配置且获准使用的检索能力；
 旧的 Tavily / Brave / Bing 配置发现保留在 ``discover_legacy_all``，仅供迁移兼容。
 连接失败时返回 ``status="failed"`` 与空工具列表，避免把失败当成成功。
 """
@@ -17,7 +17,7 @@ from 工作台.接入.search.tavily_mcp import TavilyMCPClient
 
 @dataclass(frozen=True)
 class MCPDiscoveryResult:
-    channel: str                       # brave | tavily | omnisearch | firecrawl | playwright
+    channel: str                       # brave | tavily | firecrawl | playwright | context7
     status: str                        # ok | failed
     tools: list[str] = field(default_factory=list)
     detail: dict[str, Any] = field(default_factory=dict)
@@ -82,26 +82,28 @@ def discover_legacy_all(config: WorkbenchConfig) -> dict[str, MCPDiscoveryResult
 
 
 def discover_all(config: WorkbenchConfig) -> dict[str, MCPDiscoveryResult]:
-    """发现生产流水线使用的五个本地 MCP。"""
+    """按允许能力发现服务；Omnisearch 与其他无关服务不进入发现列表。"""
+    from 工作台.接入.search.capability_registry import ALIASES, CapabilityRegistry
     from 工作台.接入.search.local_mcp import LocalMCPClient
-    from 工作台.接入.search.research_agent import SERVERS
 
     client = LocalMCPClient(config_path=config.local_mcp_config_path)
+    registry = CapabilityRegistry(client, overrides=config.local_mcp_servers)
     results: dict[str, MCPDiscoveryResult] = {}
-    for channel, server in SERVERS.items():
+    for channel in ALIASES:
         try:
-            tools = client.discover(server)
+            server = registry.server(channel)
+            tools = registry.tools(channel)
             results[channel] = MCPDiscoveryResult(
                 channel=channel,
                 status="ok",
-                tools=[str(item["name"]) for item in tools if isinstance(item, dict) and item.get("name")],
+                tools=[str(item["name"]) for item in tools],
                 detail={"server": server},
             )
-        except Exception as exc:  # noqa: BLE001 - 诊断必须报告每个服务的安全错误摘要
+        except Exception as exc:  # noqa: BLE001 - 仅输出安全类别，不暴露服务响应
             results[channel] = MCPDiscoveryResult(
                 channel=channel,
                 status="failed",
                 tools=[],
-                detail={"server": server, "error": type(exc).__name__},
+                detail={"error": type(exc).__name__, "category": getattr(exc, "category", "protocol")},
             )
     return results

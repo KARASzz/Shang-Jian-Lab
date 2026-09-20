@@ -20,7 +20,49 @@ from typing import Any, Callable
 
 
 class LocalMCPError(RuntimeError):
-    """本地 MCP 配置、SDK、服务或协议调用失败。"""
+    """本地 MCP 配置、SDK、服务或协议调用失败；仅暴露安全类别。"""
+
+    def __init__(self, message: str, *, category: str = "protocol") -> None:
+        super().__init__(message)
+        self.category = category
+
+
+def classify_error(error: Any) -> str:
+    """将本地异常归为不含服务原文的有限安全类别。"""
+    known_category = getattr(error, "category", None)
+    if known_category in {"configuration", "auth", "quota", "rate_limit", "timeout", "network", "tool_missing", "protocol", "empty"}:
+        return known_category
+    parts: list[str] = []
+    pending = [error]
+    while pending:
+        current = pending.pop()
+        parts.append(type(current).__name__.lower())
+        try:
+            parts.append(str(current).lower())
+        except Exception:
+            pass
+        nested = getattr(current, "exceptions", None)
+        if isinstance(nested, (list, tuple)):
+            pending.extend(nested)
+        cause = getattr(current, "__cause__", None)
+        if cause is not None:
+            pending.append(cause)
+    value = " ".join(parts)
+    if any(token in value for token in ("unauthorized", "forbidden", "authentication", "not authenticated", "invalid api key", "401", "403")):
+        return "auth"
+    if any(token in value for token in ("quota", "credit balance", "insufficient credits", "usage limit", "spending limit")):
+        return "quota"
+    if any(token in value for token in ("rate limit", "too many requests", "429")):
+        return "rate_limit"
+    if "timeout" in value or "timed out" in value:
+        return "timeout"
+    if any(token in value for token in ("connection", "network", "dns", "socket", "broken pipe", "refused")):
+        return "network"
+    if "tool_missing" in value or "未发现 MCP 工具" in value:
+        return "tool_missing"
+    if any(token in value for token in ("toml", "配置", "configuration")):
+        return "configuration"
+    return "protocol"
 
 
 @dataclass(frozen=True)
@@ -38,7 +80,7 @@ _ENV_REFERENCE = re.compile(r"\$(?:\{(?P<braced>[A-Za-z_][A-Za-z0-9_]*)\}|(?P<pl
 _STDIO_TYPES = {"stdio", "local", "command"}
 _HTTP_TYPES = {"http", "streamable_http", "streamablehttp", "streamable"}
 _SSE_TYPES = {"sse", "http_sse", "http+sse"}
-_BLOCKED_SERVERS = {"node_repl"}
+_BLOCKED_SERVERS = {"node_repl", "omnisearch", "mcp-omnisearch"}
 
 
 def _load_sdk() -> _MCPRuntime:
@@ -62,7 +104,7 @@ def _load_sdk() -> _MCPRuntime:
 
         from mcp.client.stdio import stdio_client
     except ImportError:
-        raise LocalMCPError("未安装官方 Python MCP SDK（mcp）") from None
+        raise LocalMCPError("未安装官方 Python MCP SDK（mcp）", category="configuration") from None
 
     try:
         from mcp.client.streamable_http import streamablehttp_client
@@ -112,6 +154,20 @@ class LocalMCPClient:
             return Path(codex_home).expanduser() / "config.toml"
         return Path.home() / ".codex" / "config.toml"
 
+    def configured_servers(self) -> dict[str, dict[str, Any]]:
+        """列出安全服务元数据，不返回 command、URL、headers 或环境变量。"""
+        configured = self._load_servers()
+        result: dict[str, dict[str, Any]] = {}
+        for name, raw in configured.items():
+            if not isinstance(name, str) or not isinstance(raw, Mapping):
+                continue
+            try:
+                transport = self._transport_kind(raw, name)
+            except LocalMCPError:
+                transport = "invalid"
+            result[name] = {"enabled": raw.get("enabled") is not False, "transport": transport}
+        return result
+
     def discover(self, server: str) -> list[dict]:
         """初始化服务并返回完整的工具 schema 列表（含所有分页）。"""
 
@@ -132,36 +188,47 @@ class LocalMCPClient:
             lambda runtime: self._call_async(runtime, spec, tool, copied_arguments),
         )
 
+    def call_any(self, server: str, tools: Sequence[str], arguments: Mapping[str, Any]) -> dict[str, Any]:
+        """同一 MCP 会话内发现候选工具并调用首个匹配项，避免重复启动 stdio。"""
+        if not tools or any(not isinstance(tool, str) or not tool for tool in tools):
+            raise LocalMCPError("MCP 工具候选无效", category="configuration")
+        if not isinstance(arguments, Mapping):
+            raise LocalMCPError("MCP 工具参数必须是对象", category="configuration")
+        spec = self._server_spec(server)
+        names = tuple(tools)
+        copied_arguments = dict(arguments)
+        return self._run(server, lambda runtime: self._call_any_async(runtime, spec, names, copied_arguments))
+
     def _load_servers(self) -> Mapping[str, Any]:
         path = self.config_path
         if not path.exists():
-            raise LocalMCPError(f"MCP 配置文件不存在：{path}")
+            raise LocalMCPError("MCP 配置文件不存在", category="configuration")
         try:
             text = path.read_text(encoding="utf-8")
         except (OSError, UnicodeError):
-            raise LocalMCPError(f"无法读取 MCP 配置文件：{path}") from None
+            raise LocalMCPError("无法读取 MCP 配置文件", category="configuration") from None
         try:
             raw = tomllib.loads(text)
         except tomllib.TOMLDecodeError:
-            raise LocalMCPError(f"MCP 配置文件格式无效：{path}") from None
+            raise LocalMCPError("MCP 配置文件格式无效", category="configuration") from None
         servers = raw.get("mcp_servers")
         if not isinstance(servers, Mapping):
-            raise LocalMCPError("MCP 配置缺少 [mcp_servers] 节点")
+            raise LocalMCPError("MCP 配置缺少 [mcp_servers] 节点", category="configuration")
         return servers
 
     def _server_spec(self, server: str) -> dict[str, Any]:
         if not isinstance(server, str) or not server:
             raise LocalMCPError("MCP 服务名不能为空")
         if server in _BLOCKED_SERVERS:
-            raise LocalMCPError("Node REPL 不属于检索 MCP，已禁止调用")
+            raise LocalMCPError("此 MCP 服务已排除本项目检索范围", category="configuration")
         servers = self._load_servers()
         if server not in servers:
-            raise LocalMCPError(f"未找到 MCP 服务：{server}")
+            raise LocalMCPError("未找到 MCP 服务", category="configuration")
         raw = servers[server]
         if not isinstance(raw, Mapping):
             raise LocalMCPError(f"MCP 服务配置无效：{server}")
         if raw.get("enabled") is False:
-            raise LocalMCPError(f"MCP 服务已禁用：{server}")
+            raise LocalMCPError("MCP 服务已禁用", category="configuration")
         spec = {str(key): value for key, value in raw.items()}
         # 仅供内部错误摘要使用；不会传入 MCP 服务配置或 SDK 参数。
         spec["__server"] = server
@@ -266,7 +333,7 @@ class LocalMCPClient:
                 raise LocalMCPError(f"MCP HTTP Bearer 环境变量配置无效：{server}")
             token = os.environ.get(env_name)
             if not token or not token.strip():
-                raise LocalMCPError(f"MCP HTTP Bearer 环境变量未设置：{server}")
+                raise LocalMCPError("MCP HTTP Bearer 环境变量未设置", category="auth")
             if not any(name.lower() == "authorization" for name in headers):
                 headers["Authorization"] = f"Bearer {token}"
 
@@ -296,7 +363,7 @@ class LocalMCPClient:
 
         expanded = _ENV_REFERENCE.sub(replace, value)
         if missing:
-            raise LocalMCPError(f"MCP HTTP 请求头引用的环境变量未设置：{server}")
+            raise LocalMCPError("MCP HTTP 请求头引用的环境变量未设置", category="auth")
         return expanded
 
     def _run(self, server: str, operation: Callable[[Any], Any]) -> Any:
@@ -316,12 +383,12 @@ class LocalMCPClient:
         except LocalMCPError:
             raise
         except ImportError:
-            raise LocalMCPError("未安装官方 Python MCP SDK（mcp）") from None
+            raise LocalMCPError("未安装官方 Python MCP SDK（mcp）", category="configuration") from None
         except (asyncio.TimeoutError, TimeoutError):
-            raise LocalMCPError(f"MCP 服务调用超时：{server}") from None
-        except Exception:
+            raise LocalMCPError("MCP 服务调用超时", category="timeout") from None
+        except Exception as exc:
             # SDK 异常可能包含命令行、HTTP header 或服务响应；对外只返回安全摘要。
-            raise LocalMCPError(f"MCP 服务调用失败：{server}") from None
+            raise LocalMCPError("MCP 服务调用失败", category=classify_error(exc)) from None
 
     async def _discover_async(self, runtime: Any, spec: Mapping[str, Any]) -> list[dict]:
         async with self._transport_context(runtime, spec) as streams:
@@ -343,13 +410,43 @@ class LocalMCPClient:
                 await session.initialize()
                 tools = await self._list_all_tools(session)
                 if not any(item.get("name") == tool for item in tools):
-                    raise LocalMCPError(f"未发现 MCP 工具：{tool}")
+                    raise LocalMCPError("未发现所需 MCP 工具", category="tool_missing")
                 try:
                     result = await session.call_tool(name=tool, arguments=arguments)
                 except TypeError:
                     # 兼容少数早期 SDK 的位置参数签名；只在 Python 调用签名不兼容时重试。
                     result = await session.call_tool(tool, arguments)
-                return self._as_dict(result, "MCP 工具调用结果")
+                payload = self._as_dict(result, "MCP 工具调用结果")
+                if payload.get("isError"):
+                    raise LocalMCPError("MCP 工具调用返回错误", category=classify_error(payload))
+                return payload
+
+    async def _call_any_async(
+        self, runtime: Any, spec: Mapping[str, Any], names: tuple[str, ...], arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        async with self._transport_context(runtime, spec) as streams:
+            read_stream, write_stream = self._stream_pair(streams)
+            async with self._session(runtime, read_stream, write_stream) as session:
+                await session.initialize()
+                tools = await self._list_all_tools(session)
+                selected = next((item for name in names for item in tools if item.get("name") == name), None)
+                if selected is None:
+                    raise LocalMCPError("未发现所需 MCP 工具", category="tool_missing")
+                schema = selected.get("inputSchema", {})
+                properties = schema.get("properties") if isinstance(schema, Mapping) else None
+                filtered = ({key: value for key, value in arguments.items() if key in properties}
+                            if isinstance(properties, Mapping) else arguments)
+                required = set(schema.get("required", [])) if isinstance(schema, Mapping) else set()
+                if required - set(filtered):
+                    raise LocalMCPError("检索参数与 MCP 工具要求不匹配", category="protocol")
+                try:
+                    result = await session.call_tool(name=selected["name"], arguments=filtered)
+                except TypeError:
+                    result = await session.call_tool(selected["name"], filtered)
+                payload = self._as_dict(result, "MCP 工具调用结果")
+                if payload.get("isError"):
+                    raise LocalMCPError("MCP 工具调用返回错误", category=classify_error(payload))
+                return {"tool": selected, "result": payload}
 
     def _transport_context(self, runtime: Any, spec: Mapping[str, Any]) -> Any:
         server = str(spec.get("__server", "MCP"))
@@ -372,8 +469,8 @@ class LocalMCPClient:
             return self._http_context(factory, url, headers)
         except LocalMCPError:
             raise
-        except Exception:
-            raise LocalMCPError(f"无法连接 MCP HTTP 服务：{server}") from None
+        except Exception as exc:
+            raise LocalMCPError("无法连接 MCP HTTP 服务", category=classify_error(exc)) from None
 
     def _session(self, runtime: Any, read_stream: Any, write_stream: Any) -> Any:
         session_class = self._runtime_member(runtime, "ClientSession")
@@ -515,4 +612,4 @@ class LocalMCPClient:
         raise LocalMCPError(f"{label}不是对象")
 
 
-__all__ = ["LocalMCPClient", "LocalMCPError"]
+__all__ = ["LocalMCPClient", "LocalMCPError", "classify_error"]

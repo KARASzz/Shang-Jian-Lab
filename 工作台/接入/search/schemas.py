@@ -20,4 +20,4 @@ class SearchSource:
     locator: str | None
     body_path: str | None
     status: Literal["ok", "paywall", "captcha", "fetch_failed", "pdf_unparsed"]
-    channel: Literal["tavily", "brave", "bing", "ima", "firecrawl", "omnisearch", "playwright"]
+    channel: Literal["tavily", "brave", "bing", "ima", "firecrawl", "omnisearch", "playwright", "context7"]  # omnisearch 仅为历史来源保留

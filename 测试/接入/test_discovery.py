@@ -11,7 +11,7 @@ from 工作台.接入.config import (
     PublicSearchConfig,
     WorkbenchConfig,
 )
-from 工作台.接入.discovery import discover_legacy_all as discover_all
+from 工作台.接入.discovery import discover_all, discover_legacy_all
 
 
 def _make_config(
@@ -28,7 +28,31 @@ def _make_config(
     )
 
 
+class _SafeMCPClient:
+    def __init__(self, config_path=None):
+        self.discovered = []
+
+    def configured_servers(self):
+        return {
+            "firecrawl-mcp": {"enabled": True, "transport": "stdio"},
+            "mcp-omnisearch": {"enabled": True, "transport": "stdio"},
+        }
+
+    def discover(self, server):
+        self.discovered.append(server)
+        return [{"name": "firecrawl_search"}]
+
+
 class DiscoveryTests(unittest.TestCase):
+    def test_local_discovery_excludes_omnisearch_and_unrelated_servers(self) -> None:
+        cfg = _make_config()
+        with patch("工作台.接入.search.local_mcp.LocalMCPClient", _SafeMCPClient):
+            results = discover_all(cfg)
+        self.assertEqual(set(results), {"firecrawl", "tavily", "brave", "playwright", "context7"})
+        self.assertNotIn("omnisearch", results)
+        firecrawl = next(result for result in results.values() if result.status == "ok")
+        self.assertEqual(firecrawl.channel, "firecrawl")
+
     def test_all_channels_return_ok(self) -> None:
         cfg = _make_config(
             tavily=MCPStdioConfig(
@@ -55,7 +79,7 @@ class DiscoveryTests(unittest.TestCase):
             TavilyCls.return_value.discover_tools.return_value = ["search"]
             BraveCls.return_value.handshake.return_value = {"status": "ok"}
             BraveCls.return_value.discover_tools.return_value = ["web_search"]
-            results = discover_all(cfg)
+            results = discover_legacy_all(cfg)
 
         self.assertEqual(set(results.keys()), {"tavily", "brave", "bing"})
         for name, r in results.items():
@@ -72,7 +96,7 @@ class DiscoveryTests(unittest.TestCase):
         )
         with patch("工作台.接入.discovery.TavilyMCPClient") as TavilyCls:
             TavilyCls.return_value.start.side_effect = RuntimeError("boom")
-            results = discover_all(cfg)
+            results = discover_legacy_all(cfg)
 
         self.assertIn("tavily", results)
         self.assertEqual(results["tavily"].status, "failed")
@@ -89,14 +113,14 @@ class DiscoveryTests(unittest.TestCase):
         )
         with patch("工作台.接入.discovery.BraveMCPClient") as BraveCls:
             BraveCls.return_value.handshake.side_effect = RuntimeError("net down")
-            results = discover_all(cfg)
+            results = discover_legacy_all(cfg)
 
         self.assertEqual(results["brave"].status, "failed")
         self.assertEqual(results["brave"].tools, [])
 
     def test_missing_channels_are_skipped(self) -> None:
         cfg = _make_config()
-        results = discover_all(cfg)
+        results = discover_legacy_all(cfg)
         self.assertEqual(results, {})
 
 

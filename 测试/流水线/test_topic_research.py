@@ -13,6 +13,31 @@ from 工作台.流水线.topic_selection import TopicSelectionStage
 from 测试.流水线._stubs import StubCrawler, StubModel, StubSearch, StubUser, make_search_source
 
 
+class _AdaptiveFirecrawlSearch:
+    def __init__(self):
+        self.calls = []
+
+    def expected_channels(self):
+        return {"firecrawl"}
+
+    def disabled_channels(self):
+        return set()
+
+    def set_intent(self, intent):
+        self.intent = intent
+
+    def search(self, query, *, round_idx):
+        self.calls.append((query, round_idx, self.intent))
+        return [make_search_source(round_idx + 1, "firecrawl")]
+
+    def fetch(self, source):
+        return source
+
+    def validate_attempts(self, round_idx, sources, *, intent=None):
+        if intent != "topic_research" or not any(source.channel == "firecrawl" for source in sources):
+            raise RuntimeError("未尝试主检索入口")
+
+
 class TopicResearchTests(unittest.TestCase):
     def test_two_rounds_call_search_twice_and_write_research_package(self) -> None:
         sources = [
@@ -54,6 +79,19 @@ class TopicResearchTests(unittest.TestCase):
                     recent_issues=[],
                 )
             self.assertEqual(crawler.calls, [])
+
+    def test_adaptive_router_does_not_require_frozen_or_unused_channels(self):
+        search = _AdaptiveFirecrawlSearch()
+        crawler = StubCrawler()
+        stage = TopicResearchStage(search=search, crawler=crawler)
+        with tempfile.TemporaryDirectory() as td:
+            state, _ = stage.run(
+                TaskState(issue_id="x", stage="topic_research", snapshot_id="s"),
+                issue_dir=td, column="AI 风险治理", recent_issues=[],
+            )
+        self.assertEqual(state.stage, "topic_selection")
+        self.assertEqual([call[2] for call in search.calls], ["topic_research", "topic_research"])
+        self.assertEqual(len(crawler.calls), 1)
 
     def test_topic_selection_requires_research_and_verified_source_ids(self) -> None:
         planner_text = "\n".join(

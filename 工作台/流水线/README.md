@@ -1,6 +1,6 @@
 # 内容流水线（工作台/流水线）
 
-研究阶段调用本地五 MCP；其中 Node REPL 明确排除，Scrapy 仅保留为独立工具。
+研究阶段按问题类型和结果缺口调用已配置的检索 MCP；Omnisearch 暂时冻结（另一个开发环境），Node REPL 不调用，Scrapy 仅保留为独立工具。
 
 实现 PLAN §3「三模型流水线」步骤 1–8。阶段模块通过 Protocol 注入
 `ModelClient` / `SearchClient` / `UserInput`；测试用 stub，续跑时由
@@ -12,9 +12,9 @@
 |---|---|
 | `state.py` | `TaskState` dataclass + 阶段推进纯函数（与接口规范 §4 字面量一致） |
 | `checkpoint.py` | checkpoint.json 原子写（`.tmp` + `os.replace`，失败清理）、版本一致性校验 |
-| `research.py` | 选题前研究：两轮调用本地 Brave / Tavily / Omnisearch / Firecrawl MCP，并定向检索 IMA 参考库，再由 MCP 调度器抓取正文 |
+| `research.py` | 选题前研究：最多两轮按需调用本地 Firecrawl / Brave / Tavily 等 MCP，并定向检索 IMA 参考库，再由 MCP 调度器抓取正文 |
 | `topic_selection.py` | 选题：仅基于两轮研究资料调 planner 拿 5 候选 → 用户选/自选 |
-| `evidence.py` | 两轮检索并由 MCP 调度器抓正文：调 search + crawler → `资料/证据清单.json` |
+| `evidence.py` | 按结果缺口检索并由 MCP 调度器抓正文：调 search + crawler → `资料/证据清单.json` |
 | `planning.py` | 策划：调 planner 出三角度策划.md |
 | `drafts.py` | 三稿：调 writer 依次生成 3 篇独立初稿 |
 | `review.py` | 审稿：调 reviewer；4 类必阻断不能被 score 救活 |

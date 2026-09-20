@@ -9,7 +9,7 @@
 ├── __init__.py
 ├── README.md              # 本文件
 ├── config.py              # 从 配置/默认.toml 读字段名；不读真实密钥
-├── discovery.py           # 启动时发现五个本地 MCP 工具（旧 API 发现函数保留）
+├── discovery.py           # 按已配置能力发现 MCP 工具（旧 API 发现函数保留）
 ├── models/
 │   ├── __init__.py
 │   ├── client.py          # OpenAI 兼容 Chat Completions
@@ -18,7 +18,8 @@
 └── search/
     ├── __init__.py
     ├── local_mcp.py       # 读取 Codex config.toml，管理本地 MCP 生命周期
-    ├── research_agent.py  # 五 MCP 检索、正文抓取与安全调度
+    ├── capability_registry.py # 受限服务别名、工具能力发现与缓存
+    ├── research_agent.py  # 按任务路由搜索、正文抓取与安全调度
     ├── ima_kb.py          # IMA 知识库定向检索与命中正文
     ├── composite.py       # 旧版三渠道兼容入口（默认不调用）
     ├── bing_public.py     # 旧版公开搜索兼容入口（默认不调用）
@@ -42,12 +43,13 @@
 
 ## 搜索与抓取分工
 
-- `ResearchDispatchAgent` 每轮调用本地 `brave-search`、`tavily`、`mcp-omnisearch`、`firecrawl-stdio` 四个搜索 MCP；不启用 Node REPL。
-- 正文抓取由 Firecrawl、Tavily、Omnisearch 轮转，并用 Playwright 处理动态页面或作回退；每次调用写入当期资料目录的 `MCP调度记录.jsonl`。
+- `ResearchDispatchAgent` 默认从 Firecrawl 开始；普通来源不足时补 Brave/Tavily，选题研究按研究线索和证据缺口补来源，Context7 与论文检索按任务选择。MCP 工具发现与调用在同一会话内完成，避免为一次调用重复启动 stdio 服务。
+- 搜索优先复用检索响应中实际返回的正文；否则 Firecrawl 抓取、Tavily 提取回退；只有需要页面交互时才用 Playwright。每次调用写入当期资料目录的 `MCP调度记录.jsonl`。
 - IMA 知识库按配置的知识库名称和当前选题关键词定向检索；每次最多取 `max_results` 条命中，不遍历或下载全库。
 - `ScrapyCrawler` 保留给需要站内多页批量爬取的独立脚本；默认选题研究和证据阶段不再依赖 Scrapy。
 - IMA 命中的可访问正文写入当期 `选题/研究/抓取/IMA正文/` 或 `资料/IMA正文/`，不交给 MCP 调度器重复抓取。
-- 选题研究严格执行两轮；证据阶段也必须抓取正文。五 MCP 中任一搜索调用失败会留下 `fetch_failed` 记录，不能伪装成成功；正文提取失败不会把搜索摘要提升为正文。
+- 选题研究最多两轮并保留 40 个去重来源下限；按结果缺口补查，不要求未使用的渠道必须被调用。失败类别分别记录，正文提取失败不会把搜索摘要提升为正文。
+- **Omnisearch 暂时冻结**：服务在另一个开发环境；注册表和底层客户端都禁止探测或调用，不计入渠道要求。恢复前需确认该环境可用并经用户明确恢复。
 
 ## 运行
 
@@ -76,9 +78,9 @@ python -m unittest discover -s 测试/接入 -v
 
    本地 MCP 还可能引用 `FIRECRAWL_API_KEY` 等变量；以本机 Codex `config.toml` 中对应 `mcp_servers.<name>.env` 的键名为准，只在本地环境设置值。
 
-3. `配置/本地.toml` 中 `[search.local_mcp]` 的 `config_path` 可选；留空时读取 `CODEX_HOME/config.toml` 或用户目录下 `.codex/config.toml`。客户端固定读取 `brave-search`、`tavily`、`mcp-omnisearch`、`firecrawl-stdio`、`playwright` 五项，明确排除 `node_repl`。
+3. `配置/本地.toml` 中 `[search.local_mcp]` 的 `config_path` 可选；留空时读取 `CODEX_HOME/config.toml` 或用户目录下 `.codex/config.toml`。服务注册表只读取本地 MCP 配置中的服务名、启用状态和传输类型；默认识别 Firecrawl (`firecrawl-mcp` / `firecrawl-stdio`)、Tavily (`tavily-search` / `tavily`)、Brave (`brave-search`)、Playwright (`playwright-MCP` / `playwright`) 与 Context7 (`context7`)。可在 `[search.local_mcp.servers]` 显式覆盖别名。Omnisearch 位于另一开发环境，暂时冻结；`node_repl` 与未声明服务不会被探测工具清单、启动或调用。
 
-4. `[search.reference.ima]` 仍可按 `knowledge_base_name` 定向检索；它是参考库，不计入五个本地 MCP。
+4. `[search.reference.ima]` 仍可按 `knowledge_base_name` 定向检索；它是参考库，不计入本地 MCP 搜索渠道。
 
 5. 真实 base URL、key、MCP 启动参数**绝不写入仓库**；日志脱敏，不打印也不返回真实 key。
 

@@ -39,8 +39,9 @@ max_retries = 2
 [search.local_mcp]
 # 留空读取 CODEX_HOME/config.toml；未设置 CODEX_HOME 时读取 ~/.codex/config.toml。
 config_path = ""
-# 使用本地 brave-search / tavily / mcp-omnisearch / firecrawl-stdio / playwright。
-# IMA 是另行配置的参考库，不计入五 MCP。
+# Omnisearch 位于另一开发环境，当前冻结。按需识别 firecrawl-mcp / tavily-search / brave-search / playwright-MCP / context7。
+# 可在 [search.local_mcp.servers] 显式覆盖能力到服务名的映射；不扫描其他服务。
+# IMA 是另行配置的参考库。
 
 # 旧字段仅为配置迁移兼容，生产流水线不再调用这些客户端。
 [search.mcp.tavily]

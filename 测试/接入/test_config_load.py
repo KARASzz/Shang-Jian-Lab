@@ -118,6 +118,21 @@ class LoadDefaultConfigTests(unittest.TestCase):
         self.assertTrue(cfg.pipeline.auth_failure_abort)  # type: ignore[union-attr]
         self.assertTrue(cfg.review.block_fabricated_citation)  # type: ignore[union-attr]
 
+    def test_loads_explicit_local_mcp_server_overrides(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "本地.toml"
+            p.write_text(SAMPLE_TOML + '\n[search.local_mcp.servers]\nfirecrawl = "firecrawl-mcp"\ntavily = "tavily-search"\n', encoding="utf-8")
+            cfg = load_local_config(repo_root=d, path=str(p))
+            self.assertEqual(cfg.local_mcp_servers, {"firecrawl": "firecrawl-mcp", "tavily": "tavily-search"})
+
+    def test_rejects_frozen_or_unknown_mcp_server_override(self) -> None:
+        for channel in ("omnisearch", "node_repl", "unknown"):
+            with self.subTest(channel=channel), tempfile.TemporaryDirectory() as d:
+                p = Path(d) / "本地.toml"
+                p.write_text(SAMPLE_TOML + f'\n[search.local_mcp.servers]\n{channel} = "arbitrary"\n', encoding="utf-8")
+                with self.assertRaises(ConfigError):
+                    load_local_config(repo_root=d, path=str(p))
+
     def test_loads_local_config(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / "本地.toml"

@@ -1,4 +1,4 @@
-"""选题前研究：两轮多渠道搜索后抓取网页，再交给 planner 生成候选。"""
+"""选题前研究：两轮按需检索、抓取正文，再交给 planner 生成候选。"""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ def _disabled_channels(search: SearchClient) -> set[str]:
 
 
 class TopicResearchStage:
-    """固定两轮调用已声明的搜索渠道，并抓取搜索结果正文。"""
+    """严格两轮检索；各工具由检索调度器按任务和结果缺口选择。"""
 
     def __init__(
         self,
@@ -72,6 +72,10 @@ class TopicResearchStage:
         )[:600]
 
     def _validate_attempts(self, round_idx: int, sources: list[SearchSource]) -> None:
+        adaptive = getattr(self.search, "validate_attempts", None)
+        if callable(adaptive):
+            adaptive(round_idx, sources, intent="topic_research")
+            return
         attempted = {source.channel for source in sources}
         disabled = _disabled_channels(self.search)
         required = self._expected_channels() - disabled
@@ -100,7 +104,7 @@ class TopicResearchStage:
             ok_by_channel.setdefault(source.channel, []).append(source)
         ordered_channels = [
             channel
-            for channel in ("brave", "tavily", "omnisearch", "firecrawl", "ima")
+            for channel in ("brave", "tavily", "firecrawl", "context7", "ima")
             if channel in ok_by_channel
         ]
         ordered_channels += sorted(set(ok_by_channel) - set(ordered_channels))
@@ -303,7 +307,10 @@ class TopicResearchStage:
             # recent_issues 进入查询上下文，避免候选研究重复旧期；不把其原文写入日志。
             if recent_issues:
                 query = f"{query} 排除已用主题数量 {len(recent_issues)}"
-            print(f"正在进行选题研究第 {round_idx + 1}/2 轮：多渠道检索与参考库查询…", flush=True)
+            print(f"正在进行选题研究第 {round_idx + 1}/2 轮：按需检索与参考库查询…", flush=True)
+            set_intent = getattr(self.search, "set_intent", None)
+            if callable(set_intent):
+                set_intent("topic_research")
             searched = self.search.search(query, round_idx=round_idx)
             # IMA 参考资料没有公开 URL；先由来源客户端取正文并落盘，公开 URL
             # 仍交给后面的 MCP 调度器统一抓取。
@@ -355,7 +362,7 @@ class TopicResearchStage:
             raise RuntimeError(
                 f"选题研究仅检索到 {len(retrieved_urls)} 个去重来源，"
                 f"低于要求的 {self.min_sources_total} 个（各渠道命中：{detail}），已停止。"
-                "请检查四个本地搜索 MCP（Brave/Tavily/Omnisearch/Firecrawl）的服务配置（额度/凭据/网络）后重试；"
+                "请检查本地检索 MCP（Firecrawl/Brave/Tavily）的服务配置（额度/凭据/网络）后重试；"
                 "也可在 配置/本地.toml [pipeline] 调整 topic_research_min_sources_total。"
             )
 

@@ -428,6 +428,7 @@ def build_orchestrator(issue_root: str | Path, *, user=None) -> Orchestrator:
         client=LocalMCPClient(config_path=cfg.local_mcp_config_path),
         ima=IMAKnowledgeBaseSearch(cfg.ima) if cfg.ima else None,
         max_pages=pipe.scrapy_max_pages if pipe else 96,
+        server_overrides=cfg.local_mcp_servers,
     )
     return Orchestrator(
         issue_id=issue_id,
