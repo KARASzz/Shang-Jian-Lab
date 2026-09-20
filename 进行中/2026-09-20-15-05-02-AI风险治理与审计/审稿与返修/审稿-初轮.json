@@ -22,38 +22,32 @@
       "issues": [
         {
           "severity": "major",
-          "category": "content_gap",
-          "location": "全文，特别是'方法论必须迁移'与'落地的基建深水区'部分。",
-          "description": "审稿侧重要求'风险措施'，但稿件仅停留在方法论层面（如'意图识别'、'在线观察'），缺乏具体、可操作的风险控制措施。例如，未说明如何定义'意图偏移'的阈值、如何实施拦截或具体的沙箱机制。",
+          "category": "missing_context",
+          "location": "全文",
+          "description": "稿件讨论“合规检查”与“审计”，但全文未引用任何具体法域（如欧盟 AI Act、中国生成式人工智能办法）或审计标准（如 ISO 42001、NIST AI RMF）。审稿侧重明确要求“法域和标准版本”，缺失这些内容导致建议缺乏监管锚点。",
           "evidence_source_ids": [],
-          "suggestion": "补充具体的风险控制措施，如针对高频调用的熔断机制、意图识别的具体判定规则或参考标准。"
+          "suggestion": "在讨论“旧范式”或“新现实”时，明确引用相关法规条款或标准版本，说明当前审计要求的法律依据。"
         },
         {
           "severity": "major",
-          "category": "content_gap",
-          "location": "全文。",
-          "description": "审稿侧重要求'标准版本'，稿件讨论审计方法论升级，却未引用任何现行或即将生效的审计标准（如 ISO 42001、NIST AI RMF 或中国相关标准），导致方法论缺乏权威依据。",
-          "evidence_source_ids": [],
-          "suggestion": "引用相关的 AI 治理或审计标准条款，支撑'行为流审计'的必要性和合规性。"
-        },
-        {
-          "severity": "minor",
-          "category": "content_gap",
-          "location": "全文。",
-          "description": "审稿侧重要求'法域'，稿件未提及任何具体法域（如欧盟、中国、美国）的监管要求，导致内容略显空泛，缺乏针对性。",
-          "evidence_source_ids": [],
-          "suggestion": "结合具体法域（如欧盟 AI Act 的可审计性要求）论述方法论升级的紧迫性。"
-        },
-        {
-          "severity": "minor",
           "category": "unsupported_key_fact",
-          "location": "段落'方法论必须迁移'。",
-          "description": "文中提出'从事后审计转向在线观察'等具体建议，但未附带引用来源，属于无出处条款。",
+          "location": "第 5 段“你不能再用看录像带的方式审 AI 了……”",
+          "description": "提出“你需要实时审计，在智能体执行动作的瞬间进行拦截或放行”这一核心风险措施，但未提供任何出处或标准依据。审稿侧重要求“风险措施”需有出处，否则构成无出处条款。",
           "evidence_source_ids": [],
-          "suggestion": "为'在线观察'等具体建议补充技术报告或标准出处。"
+          "suggestion": "补充支持“实时审计”必要性的技术标准、最佳实践指南或监管要求引用。"
+        },
+        {
+          "severity": "minor",
+          "category": "evidence_quality",
+          "location": "第 4 段“落地的基建深水区……”",
+          "description": "声称“传统的 SIEM 扛不住这种高频、非结构化的数据”，虽有引用 [firecrawl-0-700798eca3dc2f8d]，但需确认该来源是否明确对比了传统 SIEM 与 AI 审计需求的具体性能瓶颈，以支撑该论断。",
+          "evidence_source_ids": [
+            "firecrawl-0-700798eca3dc2f8d"
+          ],
+          "suggestion": "核实引用内容是否直接支持“扛不住”的结论，或补充更具体的技术对比数据。"
         }
       ],
-      "score": 75.0,
+      "score": 65.0,
       "recommendation": "draft_2",
       "pass_": false
     },
@@ -61,77 +55,69 @@
       "draft_version": "draft_3",
       "issues": [
         {
-          "severity": "block",
-          "category": "unsupported_key_fact",
-          "location": "监管者的困境：要入口，但找不到抓手 / 第2段",
-          "description": "关于欧盟《人工智能法案》审计要求的表述存在关键事实错误。文中称“法规明确要求对高风险 AI 系统进行第三方独立审计”。实际上，根据欧盟 AI Act 最终文本，绝大多数高风险系统（Annex III）允许企业通过“内部合格评定”完成合规，仅特定高风险生物识别系统等极少数情况强制要求第三方审计。文中“明确要求第三方独立审计”的说法扩大了法规的强制范围，属于关键事实无依据。",
-          "evidence_source_ids": [
-            "firecrawl-0-4726e77d40f10114"
-          ],
-          "suggestion": "修正为“法规要求高风险系统进行合格评定，虽然部分敏感领域强制第三方审计，但大多数情况下允许企业通过内部评估自证合规，这给监管留下了‘自查自纠’的隐患”。"
-        },
-        {
           "severity": "major",
-          "category": "unsupported_key_fact",
-          "location": "监管者的困境：要入口，但找不到抓手 / 第2段",
-          "description": "罚款金额与违规类型对应关系不准确。文中称“如果违规，罚款上限是 3500 万欧元...”。该罚款上限（3500 万欧或全球营业额 7%）适用于“禁止的 AI 实践”（Prohibited Practices，如社会评分）。对于高风险系统的违规，罚款上限通常为 1500 万欧元或全球营业额 3%。文中将最高等级罚款泛化为高风险系统违规罚款，误导性强。",
-          "evidence_source_ids": [
-            "firecrawl-0-4726e77d40f10114"
-          ],
-          "suggestion": "区分违规类型，或使用高风险系统对应的罚款上限（1500 万欧/3%）。"
-        },
-        {
-          "severity": "major",
-          "category": "scope_gaps",
-          "location": "全文",
-          "description": "审稿侧重明确要求“风险措施”，但稿件全篇侧重于“审计边界”的博弈分析，缺乏对具体风险控制措施的落地讨论。例如，文中提到“安全护栏”，但未展开具体的技术标准（如 ISO/IEC 42001）或具体的权限控制措施（如 RAG 检索范围限制、工具调用白名单）。这导致文章停留在宏观博弈层面，缺乏实操层面的风险应对指导。",
+          "category": "inaccurate_claim",
+          "location": "监管者的困境：要入口，但找不到抓手 -> 第2段",
+          "description": "文中称欧盟《人工智能法案》“法规明确要求对高风险 AI 系统进行第三方独立审计”。该表述不准确。根据欧盟《人工智能法案》最终文本（Art. 43），绝大多数高风险系统（Annex III）主要履行合格评定程序，通常以内部管控和自我声明为主，仅在特定高风险领域（如生物识别）才强制要求第三方审计。笼统称“明确要求第三方独立审计”易误导读者对合规义务的理解。",
           "evidence_source_ids": [],
-          "suggestion": "在“企业的算盘”或“灰色地带”部分，补充具体的风险缓解措施案例，如“企业通过限制智能体的工具调用权限、引入人机协同审批节点等具体措施来降低审计风险”。"
+          "suggestion": "核实欧盟《人工智能法案》Art. 43 关于合格评定的具体规定。建议修改为“法规要求高风险系统履行严格的合格评定程序，部分关键领域需第三方审计”，并准确引用条款编号。"
+        },
+        {
+          "severity": "minor",
+          "category": "missing_standard_reference",
+          "location": "全文",
+          "description": "审稿侧重要求关注“标准版本”。文中多次提及“审计”、“合规”、“安全护栏”，但未引用具体的国际或国家标准（如 ISO/IEC 42001 AI 管理体系、NIST AI RMF 或 ISO/IEC 27001）。缺乏具体标准版本号，使得文中关于“审计边界”的讨论缺乏技术锚点。",
+          "evidence_source_ids": [],
+          "suggestion": "在讨论企业自治或监管抓手时，建议引入 ISO/IEC 42001 等标准作为参照系，明确“审计”在标准层面的定义与范围，增强专业深度。"
+        },
+        {
+          "severity": "minor",
+          "category": "unsupported_key_fact",
+          "location": "监管者的困境：要入口，但找不到抓手 -> 第2段",
+          "description": "文中提到“罚款上限是 3500 万欧元，或者你公司全球营业额的百分之七”。该数据准确，但未明确指出这是针对“违规行为”的罚款上限，且未区分不同规模企业的罚款梯度（如中小企业有不同比例）。虽然引用了来源，但建议更严谨地表述法域差异。",
+          "evidence_source_ids": [
+            "firecrawl-0-4726e77d40f10114"
+          ],
+          "suggestion": "补充说明该罚款标准针对的是违反法案特定条款的行为，并确认引用来源是否明确提及了该罚款细则。"
         }
       ],
-      "score": 60.0,
+      "score": 75.0,
       "recommendation": "draft_3",
       "pass_": false
     }
   ],
   "recommendation": {
-    "draft_version": "draft_2",
+    "draft_version": "draft_3",
     "issues": [
       {
         "severity": "major",
-        "category": "content_gap",
-        "location": "全文，特别是'方法论必须迁移'与'落地的基建深水区'部分。",
-        "description": "审稿侧重要求'风险措施'，但稿件仅停留在方法论层面（如'意图识别'、'在线观察'），缺乏具体、可操作的风险控制措施。例如，未说明如何定义'意图偏移'的阈值、如何实施拦截或具体的沙箱机制。",
+        "category": "inaccurate_claim",
+        "location": "监管者的困境：要入口，但找不到抓手 -> 第2段",
+        "description": "文中称欧盟《人工智能法案》“法规明确要求对高风险 AI 系统进行第三方独立审计”。该表述不准确。根据欧盟《人工智能法案》最终文本（Art. 43），绝大多数高风险系统（Annex III）主要履行合格评定程序，通常以内部管控和自我声明为主，仅在特定高风险领域（如生物识别）才强制要求第三方审计。笼统称“明确要求第三方独立审计”易误导读者对合规义务的理解。",
         "evidence_source_ids": [],
-        "suggestion": "补充具体的风险控制措施，如针对高频调用的熔断机制、意图识别的具体判定规则或参考标准。"
-      },
-      {
-        "severity": "major",
-        "category": "content_gap",
-        "location": "全文。",
-        "description": "审稿侧重要求'标准版本'，稿件讨论审计方法论升级，却未引用任何现行或即将生效的审计标准（如 ISO 42001、NIST AI RMF 或中国相关标准），导致方法论缺乏权威依据。",
-        "evidence_source_ids": [],
-        "suggestion": "引用相关的 AI 治理或审计标准条款，支撑'行为流审计'的必要性和合规性。"
+        "suggestion": "核实欧盟《人工智能法案》Art. 43 关于合格评定的具体规定。建议修改为“法规要求高风险系统履行严格的合格评定程序，部分关键领域需第三方审计”，并准确引用条款编号。"
       },
       {
         "severity": "minor",
-        "category": "content_gap",
-        "location": "全文。",
-        "description": "审稿侧重要求'法域'，稿件未提及任何具体法域（如欧盟、中国、美国）的监管要求，导致内容略显空泛，缺乏针对性。",
+        "category": "missing_standard_reference",
+        "location": "全文",
+        "description": "审稿侧重要求关注“标准版本”。文中多次提及“审计”、“合规”、“安全护栏”，但未引用具体的国际或国家标准（如 ISO/IEC 42001 AI 管理体系、NIST AI RMF 或 ISO/IEC 27001）。缺乏具体标准版本号，使得文中关于“审计边界”的讨论缺乏技术锚点。",
         "evidence_source_ids": [],
-        "suggestion": "结合具体法域（如欧盟 AI Act 的可审计性要求）论述方法论升级的紧迫性。"
+        "suggestion": "在讨论企业自治或监管抓手时，建议引入 ISO/IEC 42001 等标准作为参照系，明确“审计”在标准层面的定义与范围，增强专业深度。"
       },
       {
         "severity": "minor",
         "category": "unsupported_key_fact",
-        "location": "段落'方法论必须迁移'。",
-        "description": "文中提出'从事后审计转向在线观察'等具体建议，但未附带引用来源，属于无出处条款。",
-        "evidence_source_ids": [],
-        "suggestion": "为'在线观察'等具体建议补充技术报告或标准出处。"
+        "location": "监管者的困境：要入口，但找不到抓手 -> 第2段",
+        "description": "文中提到“罚款上限是 3500 万欧元，或者你公司全球营业额的百分之七”。该数据准确，但未明确指出这是针对“违规行为”的罚款上限，且未区分不同规模企业的罚款梯度（如中小企业有不同比例）。虽然引用了来源，但建议更严谨地表述法域差异。",
+        "evidence_source_ids": [
+          "firecrawl-0-4726e77d40f10114"
+        ],
+        "suggestion": "补充说明该罚款标准针对的是违反法案特定条款的行为，并确认引用来源是否明确提及了该罚款细则。"
       }
     ],
     "score": 75.0,
-    "recommendation": "draft_2",
+    "recommendation": "draft_3",
     "pass_": false
   }
 }
