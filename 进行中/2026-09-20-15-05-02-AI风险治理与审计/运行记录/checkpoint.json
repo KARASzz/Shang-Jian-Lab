@@ -1,6 +1,6 @@
 {
   "issue_id": "2026-09-20-15-05-02-AI风险治理与审计",
-  "stage": "awaiting_human",
+  "stage": "review_1",
   "versions": {
     "topic_research": "853939f53c4550d81c32f989df0ab0a14135979499979e17fc969a03388ab4ce",
     "topic_selection": "90da9a6861f6e690d44b876ec754a6edab479d79f8a9fd557cfc0cc8abf4a61d",
@@ -11,6 +11,6 @@
     "draft_3": "51a9f3d96473f8351d774d42ff7d6fdf735acd3238d6de530a21e754936d8d04"
   },
   "snapshot_id": "/Volumes/Sea of Symbols/+Python mac/+shang-jian-lab/配置/本期.toml",
-  "last_checkpoint_at": "2026-09-20T08:25:20+00:00",
+  "last_checkpoint_at": "2026-09-20T09:08:54+00:00",
   "rerun_invalidated": []
 }

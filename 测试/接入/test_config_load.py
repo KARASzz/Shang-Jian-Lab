@@ -77,7 +77,7 @@ SAMPLE_TOML = textwrap.dedent(
     deep_search_rounds_max = 2
     deep_search_unique_sources_max = 30
     site_depth_max = 2
-    revision_rounds_max = 2
+    deai_temperature = 0.85
     network_retry_max = 2
     auth_failure_abort = true
 

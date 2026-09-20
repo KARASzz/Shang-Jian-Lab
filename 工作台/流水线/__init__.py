@@ -25,7 +25,7 @@ from .evidence import EvidenceCollectionStage
 from .planning import PlanningStage
 from .drafts import DraftsStage
 from .review import ReviewStage, BLOCK_CATEGORIES
-from .revise import ReviseStage, MaxRevisionsExceeded
+from .deai import DeaiStage
 from .finalizing import FinalizingStage
 from .orchestrator import Orchestrator
 
@@ -48,8 +48,7 @@ __all__ = [
     "DraftsStage",
     "ReviewStage",
     "BLOCK_CATEGORIES",
-    "ReviseStage",
-    "MaxRevisionsExceeded",
+    "DeaiStage",
     "FinalizingStage",
     "Orchestrator",
 ]

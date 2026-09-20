@@ -13,7 +13,8 @@ from typing import Iterable
 from 工作台.接口 import Stage, TaskState
 
 
-# 接口规范 §4 的字面顺序；finalizing / archived 不在自动流水线里推进。
+# 接口规范 §4 的字面顺序；finalizing / archived / awaiting_human 不在自动流水线里推进。
+# 自动流水线末段是 ``deai``（去 AI 味润色 → 写 待定稿/推荐稿.md）。
 STAGE_ORDER: tuple[Stage, ...] = (
     "topic_research",
     "topic_selection",
@@ -23,9 +24,7 @@ STAGE_ORDER: tuple[Stage, ...] = (
     "draft_2",
     "draft_3",
     "review_1",
-    "revise_1",
-    "review_2",
-    "revise_2",
+    "deai",
 )
 
 
@@ -34,36 +33,28 @@ STAGE_ORDER: tuple[Stage, ...] = (
 RERUN_DOWNSTREAM: dict[Stage, tuple[Stage, ...]] = {
     "topic_research": (
         "topic_research", "topic_selection", "evidence_collection", "planning",
-        "draft_1", "draft_2", "draft_3",
-        "review_1", "revise_1", "review_2", "revise_2",
+        "draft_1", "draft_2", "draft_3", "review_1", "deai",
     ),
     "topic_selection": (
         "topic_selection", "evidence_collection", "planning",
-        "draft_1", "draft_2", "draft_3",
-        "review_1", "revise_1", "review_2", "revise_2",
+        "draft_1", "draft_2", "draft_3", "review_1", "deai",
     ),
     "evidence_collection": (
         "evidence_collection", "planning",
-        "draft_1", "draft_2", "draft_3",
-        "review_1", "revise_1", "review_2", "revise_2",
+        "draft_1", "draft_2", "draft_3", "review_1", "deai",
     ),
     "planning": (
-        "planning", "draft_1", "draft_2", "draft_3",
-        "review_1", "revise_1", "review_2", "revise_2",
+        "planning", "draft_1", "draft_2", "draft_3", "review_1", "deai",
     ),
-    "draft_1": ("draft_1", "draft_2", "draft_3",
-                "review_1", "revise_1", "review_2", "revise_2"),
-    "draft_2": ("draft_2", "draft_3",
-                "review_1", "revise_1", "review_2", "revise_2"),
-    "draft_3": ("draft_3", "review_1", "revise_1", "review_2", "revise_2"),
-    "review_1": ("review_1", "revise_1", "review_2", "revise_2"),
-    "revise_1": ("revise_1", "review_2", "revise_2"),
-    "review_2": ("review_2", "revise_2"),
-    "revise_2": ("revise_2",),
+    "draft_1": ("draft_1", "draft_2", "draft_3", "review_1", "deai"),
+    "draft_2": ("draft_2", "draft_3", "review_1", "deai"),
+    "draft_3": ("draft_3", "review_1", "deai"),
+    "review_1": ("review_1", "deai"),
+    "deai": ("deai",),
 }
 
 
-# 返修轮数上限之后进入 awaiting_human；最终定稿需由用户触发（5/6 号菜单）。
+# awaiting_human 由用户/诊断主动调用；自动流水线不进入；最终定稿由 5/6 号菜单触发。
 AWAIT_HUMAN: Stage = "awaiting_human"
 FINALIZING: Stage = "finalizing"
 ARCHIVED: Stage = "archived"
@@ -84,8 +75,8 @@ def advance(state: TaskState, event: str = "ok") -> TaskState:
 
     event：
         - ``"ok"``：正常推进。
-        - ``"await_human"``：转入 awaiting_human（用于返修超限等）。
-        - ``"finalizing"``：转入 finalizing（仅在 review 通过且 ≤ 2 轮返修时）。
+        - ``"await_human"``：转入 awaiting_human（仅由用户/诊断主动触发）。
+        - ``"finalizing"``：转入 finalizing（由 deai 阶段调用，写好 待定稿/推荐稿.md 后）。
         - ``"archived"``：由用户触发；自动流水线一般不调用。
     """
     if event == "await_human":
@@ -103,7 +94,7 @@ def advance(state: TaskState, event: str = "ok") -> TaskState:
         # 已在终态
         return state
     if idx + 1 >= len(STAGE_ORDER):
-        # 已到 revise_2 后，正常流水线会切换到 finalizing/await_human
+        # 已到 deai（自动流水线末段）；后续只能由 commit_stage event 切到 finalizing
         return state
     next_stage = STAGE_ORDER[idx + 1]
     return replace(state, stage=next_stage, last_checkpoint_at=_now_iso())

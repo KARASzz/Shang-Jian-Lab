@@ -1,20 +1,23 @@
 """待定稿产物（PLAN §3 步骤 7）。
 
-``finalizing.py`` 只产出推荐稿 + 备选标题 + 摘要 + 资料口径；
-带书名号的定稿由用户在 5 号菜单导入，**不**在本流水线职责内。
+``finalizing.py`` 产出备选标题 + 摘要 + 资料口径；带书名号的定稿由用户在
+5 号菜单导入，**不**在本流水线职责内。
+
+新流程：不再要求 ``verdict.pass_``；推荐稿已由 ``deai`` 阶段写到
+``待定稿/推荐稿.md``，本阶段只需在该稿件基础上生成辅助产物。
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from 工作台.接口 import ModelClient, ModelRequest, ReviewVerdict
+from 工作台.接口 import ModelClient, ModelRequest
 from 工作台.流水线.checkpoint import commit_stage
 from 工作台.流水线.prompts import request_model_of, system_prompt
 
 
 class FinalizingStage:
-    """把推荐稿 + 备选标题 + 摘要 + 资料口径写到 ``待定稿/``。"""
+    """读 ``待定稿/推荐稿.md`` 写备选标题 + 摘要 + 资料口径。"""
 
     def __init__(self, *, writer: ModelClient, snapshot_id: str) -> None:
         self.writer = writer
@@ -65,20 +68,16 @@ class FinalizingStage:
         *,
         issue_dir: str,
         draft_text: str,
-        verdict: ReviewVerdict,
         source_titles: list[str],
         evidence_citations: list[str],
     ):
-        if not verdict.pass_:
-            raise RuntimeError("推荐稿未通过审稿，禁止进入 finalizing")
-
         titles_resp = self.writer.chat(self.build_titles_request(draft_text=draft_text))
         summary_resp = self.writer.chat(self.build_summary_request(draft_text=draft_text))
 
         pending_dir = Path(issue_dir) / "待定稿"
         pending_dir.mkdir(parents=True, exist_ok=True)
 
-        (pending_dir / "推荐稿.md").write_text(draft_text, encoding="utf-8")
+        # 推荐稿已由 deai 阶段写就；此处不重复写入。
         titles_md = self._wrap("备选标题", titles_resp.text)
         (pending_dir / "备选标题.md").write_text(titles_md, encoding="utf-8")
 
@@ -96,7 +95,7 @@ class FinalizingStage:
             Path(issue_dir) / "运行记录",
             version_key="finalizing",
             text=draft_text,
-            event="finalizing",
+            event="ok",  # 已在 FINALIZING；advance 保持终态
         )
         return state, {
             "推荐稿": pending_dir / "推荐稿.md",

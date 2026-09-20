@@ -64,13 +64,18 @@ class RerunTests(unittest.TestCase):
             set(RERUN_DOWNSTREAM["topic_selection"]),
         )
 
-    def test_rerun_review_1_only_invalidates_review_revise(self):
+    def test_rerun_review_1_only_invalidates_review_and_deai(self):
         s = _ts()
         s = rerun(s, "review_1")
         self.assertEqual(
             set(s.rerun_invalidated),
-            {"review_1", "revise_1", "review_2", "revise_2"},
+            {"review_1", "deai"},
         )
+
+    def test_rerun_deai_only_invalidates_deai(self):
+        s = _ts()
+        s = rerun(s, "deai")
+        self.assertEqual(set(s.rerun_invalidated), {"deai"})
 
     def test_rerun_invalid_target_raises(self):
         s = _ts()

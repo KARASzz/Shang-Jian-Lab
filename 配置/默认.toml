@@ -84,7 +84,7 @@ topic_research_sources_max_per_round = 24
 topic_research_min_valid_channels = 2
 topic_research_min_sources_total = 40
 scrapy_max_pages = 96  # 历史字段名，现控制 MCP 每批抓取的 URL 上限
-revision_rounds_max = 2
+deai_temperature = 0.85  # 去 AI 味润色阶段使用，温度越高表达越多样
 network_retry_max = 2
 auth_failure_abort = true
 

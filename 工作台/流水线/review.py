@@ -208,7 +208,7 @@ class ReviewStage:
             encoding="utf-8",
         )
 
-        # 不在这里推进阶段；revise.py 决定下一阶段（revise_1 / review_2 / finalizing / awaiting_human）
+        # 不在这里推进阶段；新流程由 orchestrator 直接 advance 到 deai，block 不再决定跳转
         return state, verdicts, rec
 
 

@@ -67,9 +67,9 @@ class PipelineConfig:
     deep_search_rounds_max: int
     deep_search_unique_sources_max: int
     site_depth_max: int
-    revision_rounds_max: int
     network_retry_max: int
     auth_failure_abort: bool
+    deai_temperature: float = 0.85
     topic_research_rounds_max: int = 2
     topic_research_sources_max_per_round: int = 24
     topic_research_min_valid_channels: int = 2
@@ -219,9 +219,9 @@ def _parse_pipeline(raw: dict[str, Any]) -> PipelineConfig:
         deep_search_rounds_max=int(raw["deep_search_rounds_max"]),
         deep_search_unique_sources_max=int(raw["deep_search_unique_sources_max"]),
         site_depth_max=int(raw["site_depth_max"]),
-        revision_rounds_max=int(raw["revision_rounds_max"]),
         network_retry_max=int(raw["network_retry_max"]),
         auth_failure_abort=bool(raw["auth_failure_abort"]),
+        deai_temperature=float(raw.get("deai_temperature", 0.85)),
         topic_research_rounds_max=int(raw.get("topic_research_rounds_max", 2)),
         topic_research_sources_max_per_round=int(raw.get("topic_research_sources_max_per_round", 24)),
         topic_research_min_valid_channels=int(raw.get("topic_research_min_valid_channels", 2)),
@@ -230,6 +230,8 @@ def _parse_pipeline(raw: dict[str, Any]) -> PipelineConfig:
     )
     if not cfg.auth_failure_abort:
         raise ConfigError("[pipeline] auth_failure_abort 必须保持 true")
+    if not 0.0 <= cfg.deai_temperature <= 2.0:
+        raise ConfigError("[pipeline] deai_temperature 必须在 0–2 之间")
     if cfg.topic_research_rounds_max != 2:
         raise ConfigError("[pipeline] topic_research_rounds_max 必须为 2")
     if cfg.topic_research_sources_max_per_round < 1:

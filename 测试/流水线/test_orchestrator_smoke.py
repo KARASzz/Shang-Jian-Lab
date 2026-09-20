@@ -45,7 +45,6 @@ class OrchestratorSmokeTests(unittest.TestCase):
                 column="大模型二三事",
                 recent_issues=["近 1", "近 2"],
                 anchor_reports=["Microsoft Work Trend Index 2026"],
-                revision_rounds_max=2,
             )
 
             state = orch.run_issue()

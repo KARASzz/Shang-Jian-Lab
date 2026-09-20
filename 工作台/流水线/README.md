@@ -18,15 +18,15 @@
 | `planning.py` | 策划：调 planner 出三角度策划.md |
 | `drafts.py` | 三稿：调 writer 依次生成 3 篇独立初稿；主模型遇 429 时依次回退 GLM-5.1、MiniMax-M3 |
 | `review.py` | 审稿：调 reviewer；4 类必阻断不能被 score 救活 |
-| `revise.py` | 返修：qwen 返修 + GLM 复审；最多 2 轮；超限进入 await_human |
-| `finalizing.py` | 待定稿：输出推荐稿 + 备选标题 + 摘要 + 资料口径 |
+| `deai.py` | 去 AI 味润色：按 review_1.recommendation 选优 → qwen 整篇改写（温度 0.85）→ 写 `待定稿/推荐稿.md` |
+| `finalizing.py` | 待定稿辅助产物：输出备选标题 + 摘要 + 资料口径 |
 | `orchestrator.py` | 编排、checkpoint、模块级 `resume` / `rerun` |
 | `prompts.py` | 从 `提示词/` 加载岗位系统提示词 |
 | `tests/` | 见 `测试/流水线/` |
 
 ## 阶段顺序
 
-`topic_research → topic_selection → evidence_collection → planning → draft_1 → draft_2 → draft_3 → review_1 → revise_1 → review_2 → revise_2 → awaiting_human | finalizing`，其中 `topic_research` 和 `evidence_collection` 都必须完成搜索后的网页抓取；IMA 只处理关键词命中的条目，不做全库下载；`finalizing` 仅在审稿通过且 ≤ 2 轮返修时由流水线写入；`archived` 由用户在 6 号菜单触发，本流水线不实现。
+`topic_research → topic_selection → evidence_collection → planning → draft_1 → draft_2 → draft_3 → review_1 → deai → finalizing`，其中 `topic_research` 和 `evidence_collection` 都必须完成搜索后的网页抓取；IMA 只处理关键词命中的条目，不做全库下载；`deai` 阶段一次性润色优选稿并写 `待定稿/推荐稿.md`，随后自动推进到 `finalizing`；`awaiting_human` 不再被复审失败自动触发，仅由用户/诊断主动设置；`archived` 由用户在 6 号菜单触发，本流水线不实现。
 
 ## 依赖
 
@@ -38,8 +38,8 @@
 ## 不变量（接口规范对齐）
 
 - 阶段字面量与接口规范 §4 完全一致；新加状态必须先打回主线程补规范。
-- `pass_` 与 4 类 `block` 的关系：`block` 出现即 `pass_=False`，**`score` 不得救活**。
-- `revision_rounds_max` 默认 2；超限直接 `awaiting_human`，**不再调用模型**。
+- `pass_` 与 4 类 `block` 的关系：`block` 出现即 `pass_=False`，**`score` 不得救活**；新流程下 `pass_` 仅作显示，**不再阻断 stage 跳转**。
+- `deai_temperature` 默认 0.85；`deai` 阶段只调一次 writer，不循环；不在任何节点自动切 `awaiting_human`。
 - checkpoint 写失败时清理 `.tmp`，不得留下半文件。
 - 上游重跑 → `rerun_invalidated` 含当前及之后所有阶段；阶段生成新产物后立即移出清单；恢复时若产物哈希与 `versions` 不一致 → `VersionMixingError`。
-- 初稿主写手遇 HTTP 429 且内置重试耗尽后，才按 GLM-5.1 → MiniMax-M3 顺序尝试；认证、岗位配置、网络及其他错误不触发模型切换。此策略只用于三篇初稿，不影响返修、审稿和定稿。
+- 初稿主写手遇 HTTP 429 且内置重试耗尽后，才按 GLM-5.1 → MiniMax-M3 顺序尝试；认证、岗位配置、网络及其他错误不触发模型切换。此策略只用于三篇初稿，不影响审稿、去 AI 味润色和定稿。
